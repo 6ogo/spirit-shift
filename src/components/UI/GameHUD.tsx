@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import { useGame, ElementType } from '@/contexts/GameContext';
 
 const GameHUD: React.FC = () => {
-  const { state, elementColors, elementNames } = useGame();
+  const { state, dispatch, elementColors, elementNames } = useGame();
   const { player, score } = state;
   
   // Element selection icons
@@ -16,13 +16,14 @@ const GameHUD: React.FC = () => {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: index * 0.1 }}
-        className={`relative w-10 h-10 rounded-full flex items-center justify-center ${isActive ? 'scale-110' : 'opacity-70'} transition-all button-hover`}
+        className={`relative w-12 h-12 rounded-full flex items-center justify-center ${isActive ? 'scale-110 z-10' : 'opacity-70'} transition-all button-hover cursor-pointer`}
         style={{ 
           backgroundColor: elementColors[element],
           boxShadow: isActive ? `0 0 10px 2px ${elementColors[element]}` : 'none'
         }}
+        onClick={() => dispatch({ type: 'CHANGE_ELEMENT', payload: element })}
       >
-        <span className="text-xs font-bold">
+        <span className="text-sm font-bold">
           {elementNames[element].charAt(0)}
         </span>
         
@@ -41,32 +42,61 @@ const GameHUD: React.FC = () => {
     );
   };
   
+  // Progress bar component
+  const ProgressBar: React.FC<{ 
+    value: number, 
+    maxValue: number, 
+    label: string, 
+    color: string,
+    className?: string
+  }> = ({ value, maxValue, label, color, className = "" }) => (
+    <motion.div 
+      initial={{ opacity: 0, width: 0 }}
+      animate={{ opacity: 1, width: 'auto' }}
+      className={`glass-panel p-2 flex-1 ${className}`}
+    >
+      <div className="flex justify-between items-center mb-1">
+        <div className="text-xs text-white/80">{label}</div>
+        <div className="text-xs font-bold">{Math.round(value)}/{maxValue}</div>
+      </div>
+      <div className="h-2 bg-black/50 rounded-full overflow-hidden">
+        <motion.div 
+          initial={{ width: '100%' }}
+          animate={{ width: `${(value / maxValue) * 100}%` }}
+          style={{ backgroundColor: color }}
+          className="h-full"
+        />
+      </div>
+    </motion.div>
+  );
+  
   return (
-    <div className="absolute inset-x-0 top-0 p-4 z-10">
+    <div className="absolute inset-x-0 p-4 z-10 pointer-events-none">
       <div className="max-w-4xl mx-auto flex flex-col space-y-4">
         {/* Top bar with score and level */}
         <div className="flex justify-between items-center">
           <motion.div 
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
-            className="glass-panel px-4 py-2"
+            className="glass-panel px-4 py-2 rounded-lg pointer-events-auto"
           >
             <div className="text-sm text-white/80">Score</div>
             <div className="text-xl font-bold">{score}</div>
           </motion.div>
           
-          <motion.div
+          <motion.button
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="glass-panel px-4 py-2 rounded-full"
+            onClick={() => dispatch({ type: 'PAUSE_GAME' })}
+            className="glass-panel px-4 py-2 rounded-lg pointer-events-auto hover:bg-white/10 transition-colors"
           >
-            <div className="text-xl font-bold tracking-wider">SPIRIT SHIFT</div>
-          </motion.div>
+            <div className="text-xl font-bold tracking-wider">PAUSE</div>
+          </motion.button>
           
           <motion.div 
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
-            className="glass-panel px-4 py-2 text-right"
+            className="glass-panel px-4 py-2 rounded-lg text-right pointer-events-auto"
           >
             <div className="text-sm text-white/80">Level</div>
             <div className="text-xl font-bold">{state.level}</div>
@@ -76,44 +106,27 @@ const GameHUD: React.FC = () => {
         {/* Health and energy bars */}
         <div className="flex space-x-4">
           {/* Health bar */}
-          <motion.div 
-            initial={{ opacity: 0, width: 0 }}
-            animate={{ opacity: 1, width: 'auto' }}
-            className="glass-panel p-2 flex-1"
-          >
-            <div className="text-xs text-white/80 mb-1">Health</div>
-            <div className="h-2 bg-black/50 rounded-full overflow-hidden">
-              <motion.div 
-                initial={{ width: '100%' }}
-                animate={{ width: `${(player.health / player.maxHealth) * 100}%` }}
-                className="h-full bg-red-500"
-              />
-            </div>
-          </motion.div>
+          <ProgressBar 
+            value={player.health} 
+            maxValue={player.maxHealth} 
+            label="Health" 
+            color="#FF5555" 
+          />
           
           {/* Energy bar */}
-          <motion.div 
-            initial={{ opacity: 0, width: 0 }}
-            animate={{ opacity: 1, width: 'auto' }}
-            className="glass-panel p-2 flex-1"
-          >
-            <div className="text-xs text-white/80 mb-1">Energy</div>
-            <div className="h-2 bg-black/50 rounded-full overflow-hidden">
-              <motion.div 
-                initial={{ width: '100%' }}
-                animate={{ width: `${(player.energy / player.maxEnergy) * 100}%` }}
-                style={{ backgroundColor: elementColors[player.currentElement] }}
-                className="h-full"
-              />
-            </div>
-          </motion.div>
+          <ProgressBar 
+            value={player.energy} 
+            maxValue={player.maxEnergy} 
+            label="Energy" 
+            color={elementColors[player.currentElement]} 
+          />
         </div>
         
         {/* Element selection */}
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="flex justify-center space-x-6 py-2"
+          className="flex justify-center space-x-6 py-2 pointer-events-auto"
         >
           {state.availableElements.map((element, index) => (
             <ElementIcon key={element} element={element} index={index} />

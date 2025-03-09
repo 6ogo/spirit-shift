@@ -7,6 +7,7 @@ import Player from './Player';
 import Platform from './Platform';
 import Spirit from './Spirit';
 import GameHUD from './UI/GameHUD';
+import { Play, Home, RotateCcw } from 'lucide-react';
 
 const GameCanvas: React.FC = () => {
   const { state, dispatch } = useGame();
@@ -53,59 +54,6 @@ const GameCanvas: React.FC = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
   
-  // Start screen component
-  const StartScreen = () => (
-    <AnimatePresence>
-      {!isPlaying && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className="absolute inset-0 flex flex-col items-center justify-center z-20 bg-black/80 backdrop-blur-sm"
-        >
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="game-title"
-          >
-            SPIRIT SHIFT
-          </motion.div>
-          
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.4 }}
-            className="game-subtitle mt-2 mb-8"
-          >
-            Possess elemental spirits. Master their powers.
-          </motion.div>
-          
-          <motion.button
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.6 }}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            className="px-8 py-3 bg-gradient-to-br from-purple-600 to-blue-600 text-white rounded-lg font-bold tracking-wide text-lg shadow-lg"
-            onClick={() => dispatch({ type: 'START_GAME' })}
-          >
-            START GAME
-          </motion.button>
-          
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.8 }}
-            className="mt-8 text-sm text-white/60"
-          >
-            Use arrow keys or WASD to move | Space to jump | 1-5 to change spirits
-          </motion.div>
-        </motion.div>
-      )}
-    </AnimatePresence>
-  );
-  
   // Pause screen component
   const PauseScreen = () => (
     <AnimatePresence>
@@ -119,18 +67,90 @@ const GameCanvas: React.FC = () => {
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="glass-panel p-8 flex flex-col items-center"
+            className="glass-panel p-8 flex flex-col items-center gap-6 rounded-xl"
           >
-            <div className="text-2xl font-bold mb-4">PAUSED</div>
+            <div className="text-3xl font-bold mb-2 text-gradient">PAUSED</div>
             
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              className="px-6 py-2 bg-white text-black rounded font-bold"
-              onClick={() => dispatch({ type: 'RESUME_GAME' })}
-            >
-              RESUME
-            </motion.button>
+            <div className="flex flex-col gap-3">
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className="flex items-center justify-center gap-2 w-48 px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-full font-bold"
+                onClick={() => dispatch({ type: 'RESUME_GAME' })}
+              >
+                <Play size={20} />
+                RESUME
+              </motion.button>
+              
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className="flex items-center justify-center gap-2 w-48 px-6 py-3 bg-white/10 backdrop-blur-md border border-white/20 text-white rounded-full font-bold"
+                onClick={() => dispatch({ type: 'RESTART_GAME' })}
+              >
+                <RotateCcw size={20} />
+                RESTART
+              </motion.button>
+              
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className="flex items-center justify-center gap-2 w-48 px-6 py-3 bg-white/10 backdrop-blur-md border border-white/20 text-white rounded-full font-bold"
+                onClick={() => dispatch({ type: 'END_GAME' })}
+              >
+                <Home size={20} />
+                MAIN MENU
+              </motion.button>
+            </div>
+            
+            <div className="mt-4 text-sm text-white/60">
+              Press ESC to resume
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+  
+  // Game Over screen component
+  const GameOverScreen = () => (
+    <AnimatePresence>
+      {state.gameOver && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="absolute inset-0 flex flex-col items-center justify-center z-20 bg-black/60 backdrop-blur-sm"
+        >
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="glass-panel p-8 flex flex-col items-center gap-6 rounded-xl"
+          >
+            <div className="text-3xl font-bold mb-2 text-red-500">GAME OVER</div>
+            <div className="text-xl mb-4">Score: {state.score}</div>
+            
+            <div className="flex flex-col gap-3">
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className="flex items-center justify-center gap-2 w-48 px-6 py-3 bg-gradient-to-r from-red-600 to-purple-600 text-white rounded-full font-bold"
+                onClick={() => dispatch({ type: 'RESTART_GAME' })}
+              >
+                <RotateCcw size={20} />
+                TRY AGAIN
+              </motion.button>
+              
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className="flex items-center justify-center gap-2 w-48 px-6 py-3 bg-white/10 backdrop-blur-md border border-white/20 text-white rounded-full font-bold"
+                onClick={() => dispatch({ type: 'END_GAME' })}
+              >
+                <Home size={20} />
+                MAIN MENU
+              </motion.button>
+            </div>
           </motion.div>
         </motion.div>
       )}
@@ -219,9 +239,41 @@ const GameCanvas: React.FC = () => {
       </div>
       
       {/* Game UI layers */}
-      {isPlaying && <GameHUD />}
-      <StartScreen />
+      <GameHUD />
       <PauseScreen />
+      <GameOverScreen />
+      
+      {/* Mobile controls overlay (for touch devices) */}
+      <div className="md:hidden absolute bottom-4 left-4 right-4 z-30 flex justify-between">
+        <div className="flex gap-2">
+          <motion.button
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
+            className="w-16 h-16 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center"
+            onTouchStart={() => dispatch({ type: 'PLAYER_MOVE_LEFT', payload: true })}
+            onTouchEnd={() => dispatch({ type: 'PLAYER_MOVE_LEFT', payload: false })}
+          >
+            ←
+          </motion.button>
+          <motion.button
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
+            className="w-16 h-16 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center"
+            onTouchStart={() => dispatch({ type: 'PLAYER_MOVE_RIGHT', payload: true })}
+            onTouchEnd={() => dispatch({ type: 'PLAYER_MOVE_RIGHT', payload: false })}
+          >
+            →
+          </motion.button>
+        </div>
+        <motion.button
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.9 }}
+          className="w-16 h-16 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center"
+          onClick={() => dispatch({ type: 'PLAYER_JUMP' })}
+        >
+          ↑
+        </motion.button>
+      </div>
     </div>
   );
 };
