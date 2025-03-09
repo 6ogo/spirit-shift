@@ -37,6 +37,8 @@ type GameAction =
   | { type: 'RESTART_GAME' }
   | { type: 'GAME_OVER' }
   | { type: 'PLAYER_MOVE', payload: { x: number, y: number } }
+  | { type: 'PLAYER_MOVE_WITH_VELOCITY', payload: { x: number, y: number, velocityY: number } }
+  | { type: 'UPDATE_VELOCITY_Y', payload: number }
   | { type: 'PLAYER_MOVE_LEFT', payload: boolean }
   | { type: 'PLAYER_MOVE_RIGHT', payload: boolean }
   | { type: 'PLAYER_JUMP' }
@@ -101,6 +103,24 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
           y: action.payload.y,
         },
       };
+    case 'PLAYER_MOVE_WITH_VELOCITY':
+      return {
+        ...state,
+        player: {
+          ...state.player,
+          x: action.payload.x,
+          y: action.payload.y,
+          velocityY: action.payload.velocityY,
+        },
+      };
+    case 'UPDATE_VELOCITY_Y':
+      return {
+        ...state,
+        player: {
+          ...state.player,
+          velocityY: action.payload,
+        },
+      };
     case 'PLAYER_MOVE_LEFT':
       return {
         ...state,
@@ -122,15 +142,42 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
     case 'PLAYER_JUMP':
       // Only jump if we're not already jumping
       if (state.player.isJumping) return state;
+      
+      // Different jump heights for different elements
+      let jumpVelocity = -15; // Default jump velocity
+      
+      // Element-specific jump velocities
+      switch (state.player.currentElement) {
+        case 'air':
+          jumpVelocity = -17; // Air jumps higher
+          break;
+        case 'earth':
+          jumpVelocity = -18; // Earth jumps highest but falls fastest
+          break;
+        case 'fire':
+          jumpVelocity = -16; // Fire jumps a bit higher
+          break;
+        case 'water':
+          jumpVelocity = -14; // Water jumps less high but floats
+          break;
+        default:
+          jumpVelocity = -15; // Spirit form is balanced
+      }
+      
       return {
         ...state,
         player: {
           ...state.player,
           isJumping: true,
-          velocityY: -15, // Jump velocity
+          velocityY: jumpVelocity,
         },
       };
     case 'PLAYER_LAND':
+      // Earth element creates a small "shock" when landing from a high jump
+      if (state.player.currentElement === 'earth' && state.player.velocityY > 10) {
+        // Would trigger a small shock effect (animation handled in Player component)
+      }
+      
       return {
         ...state,
         player: {
@@ -141,11 +188,18 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
         },
       };
     case 'CHANGE_ELEMENT':
+      // Add some score for changing elements (encourages experimentation)
+      let scoreBonus = state.player.currentElement !== action.payload ? 5 : 0;
+      
       return {
         ...state,
+        score: state.score + scoreBonus,
         player: {
           ...state.player,
           currentElement: action.payload,
+          // Health/energy adjustments for different elements
+          health: state.player.health, // Keep health the same
+          energy: state.player.energy, // Keep energy the same
         },
       };
     case 'UPDATE_HEALTH':
@@ -191,7 +245,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [state, dispatch] = useReducer(gameReducer, initialGameState);
   
   const elementColors: Record<ElementType, string> = {
-    spirit: '#1A1A1A',
+    spirit: '#2A2A2A',
     fire: '#F24236',
     water: '#28C2FF',
     earth: '#4A934A',
@@ -264,7 +318,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
-      window.addEventListener('keyup', handleKeyUp);
+      window.removeEventListener('keyup', handleKeyUp);
     };
   }, [state.isPlaying, state.isPaused]);
   

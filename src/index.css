@@ -55,22 +55,26 @@
   /* Spirit element colors with glowing effects */
   .spirit-fire {
     --glow-color: rgba(242, 66, 54, 0.6);
-    @apply bg-spirit-fire text-white;
+    @apply bg-gradient-to-b from-red-700 to-red-600 text-white;
+    box-shadow: 0 0 10px 2px var(--glow-color);
   }
   
   .spirit-water {
     --glow-color: rgba(40, 194, 255, 0.6);
-    @apply bg-spirit-water text-white;
+    @apply bg-gradient-to-b from-blue-600 to-blue-500 text-white;
+    box-shadow: 0 0 10px 2px var(--glow-color);
   }
   
   .spirit-earth {
     --glow-color: rgba(74, 147, 74, 0.6);
-    @apply bg-spirit-earth text-white;
+    @apply bg-gradient-to-b from-green-700 to-green-600 text-white;
+    box-shadow: 0 0 10px 2px var(--glow-color);
   }
   
   .spirit-air {
     --glow-color: rgba(187, 208, 255, 0.6);
-    @apply bg-spirit-air text-black;
+    @apply bg-gradient-to-b from-purple-500 to-indigo-500 text-white;
+    box-shadow: 0 0 10px 2px var(--glow-color);
   }
   
   /* Smooth scrolling and better touch behavior */
@@ -101,10 +105,67 @@
   /* Text styles */
   .game-title {
     @apply text-4xl md:text-6xl font-bold tracking-tight;
-    text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+    text-shadow: 0 0 15px rgba(255, 255, 255, 0.5);
   }
   
   .game-subtitle {
     @apply text-lg md:text-xl text-white/80 tracking-wide;
+  }
+  
+  /* Text gradient effect */
+  .text-gradient {
+    @apply font-bold;
+    background: linear-gradient(to right, #ffffff, #b3ffe0);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    text-shadow: 0 0 10px rgba(0, 255, 200, 0.3);
+  }
+  
+  /* Button styles */
+  .gradient-button {
+    @apply rounded-lg px-4 py-2 font-bold text-white shadow-lg 
+           transition-all duration-300 hover:scale-105 active:scale-95
+           bg-gradient-to-r from-blue-600 to-purple-600 
+           hover:from-blue-500 hover:to-purple-500;
+  }
+  
+  /* Enhanced animations */
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+  }
+  
+  @keyframes pulse-subtle {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.8; }
+  }
+  
+  @keyframes elemental-glow {
+    0% { box-shadow: 0 0 5px 2px var(--glow-color); }
+    50% { box-shadow: 0 0 15px 5px var(--glow-color); }
+    100% { box-shadow: 0 0 5px 2px var(--glow-color); }
+  }
+  
+  .animate-float {
+    animation: float 3s ease-in-out infinite;
+  }
+  
+  .animate-pulse-subtle {
+    animation: pulse-subtle 2s ease-in-out infinite;
+  }
+  
+  .animate-elemental-glow {
+    animation: elemental-glow 2s infinite;
+  }
+  
+  /* Particle effects */
+  .particle {
+    @apply absolute rounded-full pointer-events-none;
+    animation: particle-fade 1s forwards;
+  }
+  
+  @keyframes particle-fade {
+    0% { opacity: 1; transform: scale(1); }
+    100% { opacity: 0; transform: scale(0); }
   }
 }

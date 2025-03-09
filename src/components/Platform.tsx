@@ -24,11 +24,11 @@ const Platform: React.FC<PlatformProps> = ({
       case 'fire':
         return 'bg-gradient-to-r from-red-800 to-red-600 border-red-500';
       case 'water':
-        return 'bg-gradient-to-r from-blue-800 to-blue-600 border-blue-400';
+        return 'bg-gradient-to-r from-blue-800 to-blue-500 border-blue-400';
       case 'earth':
         return 'bg-gradient-to-r from-green-800 to-green-600 border-green-500';
       case 'air':
-        return 'bg-gradient-to-r from-purple-800 to-purple-600 border-purple-400';
+        return 'bg-gradient-to-r from-purple-800 to-indigo-600 border-purple-400';
       default:
         return 'bg-gradient-to-r from-gray-800 to-gray-700 border-gray-600';
     }
@@ -61,13 +61,14 @@ const Platform: React.FC<PlatformProps> = ({
                 }}
               />
             ))}
+            <div className="absolute inset-0 bg-gradient-to-t from-transparent to-red-500/10"></div>
           </div>
         );
       case 'water':
         return (
           <div className="absolute inset-0 overflow-hidden">
             <motion.div
-              className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-cyan-500/10"
+              className="absolute inset-0 bg-gradient-to-r from-blue-500/20 to-cyan-500/20"
               animate={{ 
                 backgroundPositionX: ['0%', '100%', '0%'],
               }}
@@ -77,11 +78,47 @@ const Platform: React.FC<PlatformProps> = ({
                 ease: "linear"
               }}
             />
+            {/* Bubbles effect */}
+            {[...Array(3)].map((_, i) => (
+              <motion.div
+                key={i}
+                className="absolute w-2 h-2 rounded-full bg-blue-300/60"
+                style={{
+                  left: `${20 + Math.random() * 60}%`,
+                  bottom: '0%'
+                }}
+                animate={{
+                  y: [-10, -height],
+                  x: [0, (Math.random() - 0.5) * 10],
+                  opacity: [0, 0.7, 0]
+                }}
+                transition={{
+                  duration: 2 + Math.random(),
+                  repeat: Infinity,
+                  delay: i * 1.5
+                }}
+              />
+            ))}
           </div>
         );
       case 'earth':
         return (
           <div className="absolute inset-0 overflow-hidden">
+            {/* Small grass-like elements on top */}
+            <div className="absolute inset-x-0 top-0 h-2 flex items-end justify-around">
+              {[...Array(Math.floor(width / 15))].map((_, i) => (
+                <div 
+                  key={i}
+                  className="h-1.5 w-1 bg-green-400 rounded-t-full"
+                  style={{
+                    height: `${0.3 + Math.random() * 0.7}rem`,
+                    marginLeft: `${Math.random() * 0.5}rem`
+                  }}
+                />
+              ))}
+            </div>
+            
+            {/* Small rocks/minerals */}
             {[...Array(8)].map((_, i) => (
               <div 
                 key={i}
@@ -93,6 +130,7 @@ const Platform: React.FC<PlatformProps> = ({
                 }}
               />
             ))}
+            <div className="absolute inset-0 bg-gradient-to-b from-green-900/10 to-transparent"></div>
           </div>
         );
       case 'air':
@@ -109,6 +147,28 @@ const Platform: React.FC<PlatformProps> = ({
                 ease: "easeInOut"
               }}
             />
+            
+            {/* Wind effect */}
+            {[...Array(4)].map((_, i) => (
+              <motion.div
+                key={i}
+                className="absolute h-0.5 bg-purple-300/40"
+                style={{
+                  width: 20 + Math.random() * 30,
+                  top: `${Math.random() * 100}%`,
+                  left: '-10%'
+                }}
+                animate={{
+                  x: [0, width + 20],
+                  opacity: [0, 0.7, 0]
+                }}
+                transition={{
+                  duration: 2 + Math.random() * 2,
+                  repeat: Infinity,
+                  delay: i * 0.5
+                }}
+              />
+            ))}
           </div>
         );
       default:
@@ -130,7 +190,15 @@ const Platform: React.FC<PlatformProps> = ({
       }}
     >
       {/* Platform surface detail */}
-      <div className="absolute top-0 left-0 right-0 h-1 bg-white/10 rounded-t-md"></div>
+      <div className="absolute top-0 left-0 right-0 h-1 bg-white/20 rounded-t-md"></div>
+      
+      {/* Platform bottom shadow */}
+      <div className="absolute -bottom-2 left-0 right-0 h-2 rounded-md opacity-50"
+        style={{
+          background: 'linear-gradient(to bottom, rgba(0,0,0,0.3), transparent)',
+          filter: 'blur(2px)'
+        }}
+      ></div>
       
       {/* Element-specific effects */}
       <ElementEffect />

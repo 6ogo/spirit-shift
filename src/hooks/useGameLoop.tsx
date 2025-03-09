@@ -21,8 +21,8 @@ export const useGameLoop = ({ fps = 60 }: GameLoopProps = {}) => {
     
     if (elapsed > fpsInterval) {
       // Only update the game state if we're playing and not paused
-      if (state.isPlaying && !state.isPaused) {
-        updateGameState(elapsed);
+      if (state.isPlaying && !state.isPaused && !state.gameOver) {
+        updateGameState(elapsed / 1000); // Convert to seconds for easier physics
       }
       
       previousTimeRef.current = time - (elapsed % fpsInterval);
@@ -31,32 +31,48 @@ export const useGameLoop = ({ fps = 60 }: GameLoopProps = {}) => {
     requestRef.current = requestAnimationFrame(gameLoop);
   };
   
-  const updateGameState = (elapsed: number) => {
-    // Gravity effect
-    const gravity = 0.8;
+  const updateGameState = (deltaTime: number) => {
+    // Gravity effect - adjusted for deltaTime
+    const gravity = 0.8 * 60 * deltaTime;
     
     // Update player position
+    let playerX = state.player.x;
     let playerY = state.player.y;
+    let velocityX = state.player.velocityX;
     let velocityY = state.player.velocityY;
+    
+    // Apply horizontal movement - smoother with deltaTime
+    playerX += velocityX * deltaTime * 60;
     
     // Apply gravity if the player is jumping
     if (state.player.isJumping) {
       velocityY += gravity;
-      playerY += velocityY;
+      playerY += velocityY * deltaTime * 60;
       
       // Check if player has landed
       if (playerY >= 300) { // Ground level
         playerY = 300;
         dispatch({ type: 'PLAYER_LAND' });
       } else {
+        // Update player position with new velocityY for proper physics
         dispatch({ 
-          type: 'PLAYER_MOVE', 
+          type: 'PLAYER_MOVE_WITH_VELOCITY', 
           payload: { 
-            x: state.player.x, 
-            y: playerY 
+            x: playerX, 
+            y: playerY,
+            velocityY: velocityY 
           } 
         });
       }
+    } else {
+      // Even when not jumping, update X position for smoother movement
+      dispatch({ 
+        type: 'PLAYER_MOVE', 
+        payload: { 
+          x: playerX, 
+          y: playerY
+        } 
+      });
     }
     
     // Apply element-specific effects
@@ -65,6 +81,11 @@ export const useGameLoop = ({ fps = 60 }: GameLoopProps = {}) => {
         // Air spirit falls slower
         if (state.player.isJumping && velocityY > 0) {
           velocityY *= 0.9;
+          // Update with reduced falling speed
+          dispatch({ 
+            type: 'UPDATE_VELOCITY_Y', 
+            payload: velocityY 
+          });
         }
         break;
       case 'fire':
@@ -72,7 +93,7 @@ export const useGameLoop = ({ fps = 60 }: GameLoopProps = {}) => {
         if (state.player.energy < state.player.maxEnergy) {
           dispatch({ 
             type: 'UPDATE_ENERGY', 
-            payload: state.player.energy + 0.2 
+            payload: state.player.energy + 0.3 // Increased regeneration
           });
         }
         break;
@@ -80,15 +101,42 @@ export const useGameLoop = ({ fps = 60 }: GameLoopProps = {}) => {
         // Water spirits can "float" briefly at jump apex
         if (state.player.isJumping && Math.abs(velocityY) < 2) {
           velocityY *= 0.7;
+          // Update with reduced falling speed
+          dispatch({ 
+            type: 'UPDATE_VELOCITY_Y', 
+            payload: velocityY 
+          });
         }
         break;
       case 'earth':
         // Earth spirits are more resistant to damage
-        // (no implementation needed in the game loop)
+        // Also they jump higher but fall faster
+        if (state.player.isJumping && velocityY > 0) {
+          // Fall faster
+          velocityY *= 1.05;
+          dispatch({ 
+            type: 'UPDATE_VELOCITY_Y', 
+            payload: velocityY 
+          });
+        }
         break;
       default:
         // Spirit form is balanced
+        if (state.player.energy < state.player.maxEnergy) {
+          dispatch({ 
+            type: 'UPDATE_ENERGY', 
+            payload: state.player.energy + 0.1 // Small energy regeneration
+          });
+        }
         break;
+    }
+    
+    // Auto-health regeneration (very slow)
+    if (state.player.health < state.player.maxHealth) {
+      dispatch({
+        type: 'UPDATE_HEALTH',
+        payload: state.player.health + 0.01 // Very slow health regen
+      });
     }
   };
   
@@ -104,7 +152,7 @@ export const useGameLoop = ({ fps = 60 }: GameLoopProps = {}) => {
         cancelAnimationFrame(requestRef.current);
       }
     };
-  }, [state.isPlaying, state.isPaused]);
+  }, [state.isPlaying, state.isPaused, state.gameOver]);
   
   return { state };
 };
