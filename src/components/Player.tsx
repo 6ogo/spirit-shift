@@ -39,7 +39,7 @@ const Player: React.FC<PlayerProps> = ({ width = 40, height = 50 }) => {
   
   // Element-specific styling
   const getElementStyles = (element: ElementType) => {
-    const baseStyles = `rounded-md w-${width} h-${height}`;
+    const baseStyles = `rounded-md`;
     
     switch (element) {
       case 'fire':
@@ -125,21 +125,40 @@ const Player: React.FC<PlayerProps> = ({ width = 40, height = 50 }) => {
             opacity: 1,
             ...getJumpAnimation(),
             rotateY: facingDirection === 'left' ? 180 : 0, // Better direction change
+            height: player.height, // Dynamic height for ducking
+            width: player.isDucking ? player.width * 1.2 : player.width, // Wider when ducking
           }}
           transition={{ 
             duration: 0.5,
             ease: "easeInOut"
           }}
           className={`relative ${getElementStyles(player.currentElement)}`}
+          style={{
+            width: player.isDucking ? player.width * 1.2 : player.width,
+            height: player.height
+          }}
         >
           {/* Player eyes */}
-          <div className="absolute top-3 left-0 right-0 flex justify-center space-x-3 pointer-events-none">
+          <div 
+            className="absolute flex justify-center space-x-3 pointer-events-none"
+            style={{ 
+              top: player.isDucking ? '25%' : '30%',
+              left: 0,
+              right: 0
+            }}
+          >
             <motion.div 
-              animate={{ scale: player.isJumping ? [1, 1.2, 1] : 1 }}
+              animate={{ 
+                scale: player.isJumping ? [1, 1.2, 1] : 1,
+                y: player.isDucking ? 1 : 0 
+              }}
               className="w-2 h-2 bg-white rounded-full"
             />
             <motion.div 
-              animate={{ scale: player.isJumping ? [1, 1.2, 1] : 1 }}
+              animate={{ 
+                scale: player.isJumping ? [1, 1.2, 1] : 1, 
+                y: player.isDucking ? 1 : 0 
+              }}
               transition={{ delay: 0.1 }}
               className="w-2 h-2 bg-white rounded-full"
             />
@@ -184,7 +203,7 @@ const Player: React.FC<PlayerProps> = ({ width = 40, height = 50 }) => {
           )}
           
           {/* Small ripple for water element */}
-          {player.currentElement === 'water' && player.isMovingLeft || player.isMovingRight && (
+          {player.currentElement === 'water' && (player.isMovingLeft || player.isMovingRight) && (
             <motion.div
               className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-12 h-2 rounded-full"
               animate={{
@@ -215,6 +234,20 @@ const Player: React.FC<PlayerProps> = ({ width = 40, height = 50 }) => {
                 backgroundColor: elementColors.earth,
                 borderRadius: "50%",
                 filter: "blur(3px)"
+              }}
+            />
+          )}
+          
+          {/* Ducking effect */}
+          {player.isDucking && (
+            <motion.div
+              className="absolute bottom-0 left-0 right-0 h-1.5 opacity-50"
+              initial={{ opacity: 0, scaleX: 0.5 }}
+              animate={{ opacity: 0.5, scaleX: 1 }}
+              exit={{ opacity: 0, scaleX: 0.5 }}
+              style={{
+                backgroundColor: elementColors[player.currentElement],
+                borderRadius: "0 0 4px 4px",
               }}
             />
           )}

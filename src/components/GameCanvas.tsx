@@ -16,18 +16,6 @@ const GameCanvas: React.FC = () => {
   // Initialize game loop
   useGameLoop();
   
-  // Platforms (would be procedurally generated in a full game)
-  const platforms = [
-    // Ground
-    { x: 0, y: 350, width: 1600, element: 'spirit' as const },
-    
-    // Floating platforms
-    { x: 200, y: 250, width: 100, element: 'fire' as const },
-    { x: 400, y: 200, width: 120, element: 'water' as const },
-    { x: 600, y: 250, width: 80, element: 'earth' as const },
-    { x: 800, y: 180, width: 100, element: 'air' as const },
-  ];
-  
   // Spirits (would be procedurally placed in a full game)
   const spirits = [
     { x: 300, y: 200, element: 'fire' as const },
@@ -157,6 +145,31 @@ const GameCanvas: React.FC = () => {
     </AnimatePresence>
   );
   
+  // Controls helper component that shows key instructions
+  const ControlsHelper = () => (
+    <AnimatePresence>
+      {isPlaying && !isPaused && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: 20 }}
+          transition={{ delay: 1, duration: 0.5 }}
+          className="absolute top-4 right-4 text-white text-sm bg-black/50 p-3 rounded-md backdrop-blur-sm z-10"
+        >
+          <h3 className="font-bold mb-2">Controls:</h3>
+          <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+            <div>W / Space / ↑</div><div>Jump</div>
+            <div>A / ←</div><div>Move Left</div>
+            <div>D / →</div><div>Move Right</div>
+            <div>S / ↓</div><div>Duck</div>
+            <div>1-5</div><div>Change Element</div>
+            <div>ESC</div><div>Pause</div>
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+  
   return (
     <div 
       className="game-container relative overflow-hidden bg-gradient-to-b from-gray-900 via-gray-800 to-black"
@@ -213,12 +226,13 @@ const GameCanvas: React.FC = () => {
           }}
         >
           {/* Platforms */}
-          {platforms.map((platform, index) => (
+          {state.platforms.map((platform, index) => (
             <Platform
               key={`platform-${index}`}
               x={platform.x}
               y={platform.y}
               width={platform.width}
+              height={platform.height}
               element={platform.element}
             />
           ))}
@@ -240,6 +254,7 @@ const GameCanvas: React.FC = () => {
       
       {/* Game UI layers */}
       <GameHUD />
+      <ControlsHelper />
       <PauseScreen />
       <GameOverScreen />
       
@@ -265,14 +280,26 @@ const GameCanvas: React.FC = () => {
             →
           </motion.button>
         </div>
-        <motion.button
-          whileHover={{ scale: 1.1 }}
-          whileTap={{ scale: 0.9 }}
-          className="w-16 h-16 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center"
-          onClick={() => dispatch({ type: 'PLAYER_JUMP' })}
-        >
-          ↑
-        </motion.button>
+        
+        <div className="flex gap-2">
+          <motion.button
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
+            className="w-16 h-16 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center"
+            onTouchStart={() => dispatch({ type: 'PLAYER_DUCK', payload: true })}
+            onTouchEnd={() => dispatch({ type: 'PLAYER_DUCK', payload: false })}
+          >
+            ↓
+          </motion.button>
+          <motion.button
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
+            className="w-16 h-16 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center"
+            onClick={() => dispatch({ type: 'PLAYER_JUMP' })}
+          >
+            ↑
+          </motion.button>
+        </div>
       </div>
     </div>
   );

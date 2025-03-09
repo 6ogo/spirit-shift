@@ -9,6 +9,7 @@ interface PlatformProps {
   width: number;
   height?: number;
   element?: ElementType;
+  canPassThrough?: boolean;
 }
 
 const Platform: React.FC<PlatformProps> = ({ 
@@ -16,7 +17,8 @@ const Platform: React.FC<PlatformProps> = ({
   y, 
   width, 
   height = 20,
-  element = 'spirit'
+  element = 'spirit',
+  canPassThrough = true
 }) => {
   // Element-specific platform styling
   const getElementStyles = () => {
@@ -187,8 +189,23 @@ const Platform: React.FC<PlatformProps> = ({
         top: y,
         width,
         height,
+        borderStyle: canPassThrough ? 'dashed' : 'solid', // Visual cue for pass-through platforms
+        opacity: canPassThrough ? 0.85 : 1, // Solid platforms are more opaque
       }}
     >
+      {/* Pass-through indicator */}
+      {canPassThrough && (
+        <div className="absolute -top-4 left-0 right-0 flex justify-center">
+          <motion.div
+            className="text-xs px-1 rounded-sm bg-white/20 backdrop-blur-sm text-white"
+            animate={{ y: [0, -3, 0]}}
+            transition={{ duration: 2, repeat: Infinity }}
+          >
+            ↑↓
+          </motion.div>
+        </div>
+      )}
+      
       {/* Platform surface detail */}
       <div className="absolute top-0 left-0 right-0 h-1 bg-white/20 rounded-t-md"></div>
       

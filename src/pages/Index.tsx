@@ -1,5 +1,5 @@
 
-import React, { useEffect } from 'react';
+import React from 'react';
 import { GameProvider } from '@/contexts/GameContext';
 import GameCanvas from '@/components/GameCanvas';
 import MainMenu from '@/components/UI/MainMenu';
@@ -11,7 +11,7 @@ const GameContent = () => {
   
   // Render different screens based on game state
   return (
-    <div className="w-full h-full">
+    <div className="w-full h-full flex items-center justify-center">
       <AnimatePresence mode="wait">
         {!state.isPlaying && (
           <motion.div
@@ -20,6 +20,7 @@ const GameContent = () => {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.5 }}
+            className="w-full h-full flex items-center justify-center"
           >
             <MainMenu />
           </motion.div>
@@ -31,6 +32,7 @@ const GameContent = () => {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.5 }}
+            className="w-full h-full"
           >
             <GameCanvas />
           </motion.div>
