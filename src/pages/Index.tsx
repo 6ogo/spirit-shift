@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { GameProvider } from '@/contexts/GameContext';
 import GameCanvas from '@/components/GameCanvas';
 import MainMenu from '@/components/UI/MainMenu';
@@ -8,6 +8,11 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 const GameContent = () => {
   const { state } = useGame();
+  
+  // Debug to track game state changes
+  useEffect(() => {
+    console.log("Game state updated:", state.isPlaying ? "Playing" : "Not Playing");
+  }, [state.isPlaying]);
   
   // Render different screens based on game state
   return (
