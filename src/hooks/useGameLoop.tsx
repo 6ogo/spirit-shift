@@ -316,8 +316,8 @@ export const useGameLoop = ({ fps = 60 }: GameLoopProps = {}) => {
       if (distanceToPlayer < 400) {
         console.log("Enemy in range, distance:", distanceToPlayer);
         
-        // Determine direction to player
-        const directionToPlayer = enemy.x < state.player.x ? 'right' : 'left';
+        // Determine direction to player - Fixed: Use proper type for direction
+        const directionToPlayer: 'left' | 'right' = enemy.x < state.player.x ? 'right' : 'left';
 
         // Calculate new x position
         let moveSpeed = enemy.speed * deltaTime * 60;
@@ -401,3 +401,4 @@ export const useGameLoop = ({ fps = 60 }: GameLoopProps = {}) => {
 
   return { state };
 };
+
