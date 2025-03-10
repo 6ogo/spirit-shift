@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGame } from '@/contexts/GameContext';
 import { Play, Info, Volume2, VolumeX, Settings } from 'lucide-react';
@@ -7,7 +7,6 @@ const MainMenu: React.FC = () => {
   const { dispatch, elementColors } = useGame();
   const [showInfo, setShowInfo] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
-  const [isButtonPressed, setIsButtonPressed] = useState(false);
   
   // Element icons that float in the background
   const ElementIcon = ({ element, x, y, delay }: { element: string, x: number, y: number, delay: number }) => (
@@ -87,11 +86,12 @@ const MainMenu: React.FC = () => {
   );
   
   const handlePlayGame = () => {
-    setIsButtonPressed(true);
-    // Add a small delay to allow the button animation to complete
-    setTimeout(() => {
-      dispatch({ type: 'START_GAME' });
-    }, 300);
+    console.log("Play button clicked - starting game directly");
+    // Direct dispatch without delay
+    dispatch({ type: 'START_GAME' });
+    
+    // Log after dispatch to confirm
+    console.log("START_GAME action dispatched");
   };
   
   return (
@@ -134,41 +134,14 @@ const MainMenu: React.FC = () => {
         </motion.div>
         
         <div className="flex flex-col gap-4 items-center">
-          <motion.button
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.3 }}
-            whileHover={{ 
-              scale: 1.05,
-              boxShadow: "0 0 20px 5px rgba(147, 51, 234, 0.5)"
-            }}
-            whileTap={{ scale: 0.95 }}
-            className="flex items-center gap-3 px-10 py-4 bg-gradient-to-r from-purple-600 to-blue-600 rounded-full text-xl font-bold shadow-lg shadow-purple-600/20 relative overflow-hidden group"
+          {/* Simplified play button without complex animations */}
+          <button
+            className="flex items-center gap-3 px-10 py-4 bg-gradient-to-r from-purple-600 to-blue-600 rounded-full text-xl font-bold shadow-lg hover:shadow-purple-600/40 transition-all"
             onClick={handlePlayGame}
-            disabled={isButtonPressed}
           >
-            <motion.span 
-              className="absolute inset-0 bg-white/20"
-              initial={{ x: "-100%", opacity: 0 }}
-              animate={isButtonPressed ? { x: "100%", opacity: 0.3 } : { x: "-100%", opacity: 0 }}
-              transition={{ duration: 0.5 }}
-            />
             <Play size={24} />
-            <span className="relative z-10">Play Game</span>
-            
-            {/* Pulsing effect around button */}
-            <motion.span
-              className="absolute inset-0 rounded-full"
-              animate={{ 
-                boxShadow: ["0 0 0px 0px rgba(147, 51, 234, 0)", "0 0 15px 2px rgba(147, 51, 234, 0.5)", "0 0 0px 0px rgba(147, 51, 234, 0)"]
-              }}
-              transition={{
-                duration: 2,
-                repeat: Infinity,
-                repeatType: "loop"
-              }}
-            />
-          </motion.button>
+            Play Game
+          </button>
           
           <div className="flex gap-4 mt-6">
             <motion.button

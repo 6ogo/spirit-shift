@@ -2,112 +2,73 @@ import React, { useEffect, useState } from 'react';
 import { GameProvider, useGame } from '@/contexts/GameContext';
 import GameCanvas from '@/components/GameCanvas';
 import MainMenu from '@/components/UI/MainMenu';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 
-// GameContent component with error handling
+// Simple debug component to help troubleshoot
+const DebugInfo = ({ state }) => (
+  <div className="fixed top-0 left-0 bg-black/70 text-white p-2 z-50 text-xs">
+    <div>isPlaying: {String(state.isPlaying)}</div>
+    <div>isPaused: {String(state.isPaused)}</div>
+    <div>gameOver: {String(state.gameOver)}</div>
+    <div>player.x: {state.player.x}</div>
+    <div>player.y: {state.player.y}</div>
+  </div>
+);
+
+// GameContent component with simplified approach
 const GameContent = () => {
-  const { state } = useGame();
-  const [error, setError] = useState(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const { state, dispatch } = useGame();
+  const [showDebug, setShowDebug] = useState(true);
   
-  // Debug to track game state changes
+  // Add key handling to toggle debug info with D key
   useEffect(() => {
-    console.log("Game state updated:", state.isPlaying ? "Playing" : "Not Playing");
-    
-    if (state.isPlaying) {
-      // Add a small delay to ensure DOM is ready before rendering GameCanvas
-      setIsLoading(true);
-      const timer = setTimeout(() => {
-        setIsLoading(false);
-      }, 200);
-      
-      return () => clearTimeout(timer);
-    }
-  }, [state.isPlaying]);
-  
-  // Error boundary effect
-  useEffect(() => {
-    const handleError = (error) => {
-      console.error("Game canvas error:", error);
-      setError(error);
+    const handleKeyDown = (e) => {
+      if (e.key === 'd' || e.key === 'D') {
+        setShowDebug(prev => !prev);
+      }
     };
     
-    window.addEventListener('error', handleError);
-    return () => window.removeEventListener('error', handleError);
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
   
-  // If an error occurred, show error screen
-  if (error) {
-    return (
-      <div className="w-full h-full flex flex-col items-center justify-center text-white bg-red-900/20">
-        <h2 className="text-2xl font-bold mb-4">Something went wrong</h2>
-        <p className="mb-4">There was an error loading the game.</p>
-        <button 
-          className="px-4 py-2 bg-white text-black rounded-md"
-          onClick={() => window.location.reload()}
-        >
-          Reload Game
-        </button>
-      </div>
-    );
-  }
+  // Log state changes to help debug
+  useEffect(() => {
+    console.log("STATE UPDATE:", 
+      { isPlaying: state.isPlaying, isPaused: state.isPaused, gameOver: state.gameOver });
+    
+    // Force a re-render whenever the game state changes
+    if (state.isPlaying) {
+      // This is a simple hack to ensure the component re-renders
+      setTimeout(() => {
+        const gameContainer = document.querySelector('.game-container');
+        if (gameContainer) {
+          console.log("Game container found and updated");
+          (gameContainer as HTMLElement).style.display = 'block';
+        } else {
+          console.error("Game container not found in DOM");
+        }
+      }, 100);
+    }
+  }, [state.isPlaying, state.isPaused, state.gameOver]);
   
-  // Render different screens based on game state
   return (
-    <div className="w-full h-full flex items-center justify-center overflow-hidden">
-      <AnimatePresence mode="wait">
-        {!state.isPlaying && (
-          <motion.div
-            key="main-menu"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.5 }}
-            className="w-full h-full flex items-center justify-center"
-          >
-            <MainMenu />
-          </motion.div>
-        )}
-        
-        {isLoading && state.isPlaying && (
-          <motion.div
-            key="loading"
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0 }}
-            className="w-full h-full flex items-center justify-center"
-          >
-            <div className="glass-panel p-8 rounded-xl flex flex-col items-center">
-              <div className="text-2xl font-bold text-gradient mb-4">Loading Game...</div>
-              <div className="w-32 h-1 bg-white/20 rounded-full overflow-hidden">
-                <motion.div 
-                  className="h-full bg-white"
-                  initial={{ width: 0 }}
-                  animate={{ width: "100%" }}
-                  transition={{ duration: 1.5, ease: "easeInOut" }}
-                />
-              </div>
-            </div>
-          </motion.div>
-        )}
-        
-        {!isLoading && state.isPlaying && (
-          <motion.div
-            key="game-canvas"
-            initial={{ opacity: 0, scale: 0.5 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ 
-              duration: 0.7, 
-              scale: { type: "spring", stiffness: 300, damping: 25 },
-              opacity: { duration: 0.3 }
-            }}
-            className="w-full h-full"
-          >
-            <GameCanvas />
-          </motion.div>
-        )}
-      </AnimatePresence>
+    <div className="w-full h-full flex items-center justify-center">
+      {/* Conditionally render content based on game state */}
+      {!state.isPlaying && (
+        <div className="w-full h-full z-10">
+          <MainMenu />
+        </div>
+      )}
+      
+      {state.isPlaying && (
+        <div className="w-full h-full absolute inset-0 z-20">
+          <GameCanvas />
+        </div>
+      )}
+      
+      {/* Always-visible debug overlay (toggle with D key) */}
+      {showDebug && <DebugInfo state={state} />}
     </div>
   );
 };
@@ -125,29 +86,6 @@ const BackgroundElements = () => {
           backgroundImage: 'radial-gradient(circle, white 1px, transparent 1px)',
         }}
       ></div>
-      
-      {/* Interactive particles */}
-      {[...Array(20)].map((_, i) => (
-        <motion.div
-          key={i}
-          className="absolute rounded-full bg-white/20"
-          style={{
-            width: Math.random() * 4 + 1,
-            height: Math.random() * 4 + 1,
-            left: `${Math.random() * 100}%`,
-            top: `${Math.random() * 100}%`,
-          }}
-          animate={{
-            opacity: [0.2, 0.6, 0.2],
-            scale: [1, 1.5, 1],
-          }}
-          transition={{
-            duration: 3 + Math.random() * 5,
-            repeat: Infinity,
-            delay: Math.random() * 5,
-          }}
-        />
-      ))}
       
       {/* Distant nebula effects */}
       <div 
@@ -173,98 +111,20 @@ const BackgroundElements = () => {
           transform: 'translate(-50%, -50%)',
         }}
       ></div>
-      
-      {/* Animated gradient background */}
-      <motion.div
-        className="absolute inset-0 opacity-30"
-        style={{
-          background: 'linear-gradient(120deg, #1a1a2e 0%, #16213e 50%, #1a1a2e 100%)',
-          backgroundSize: '200% 200%',
-        }}
-        animate={{
-          backgroundPosition: ['0% 0%', '100% 100%', '0% 0%'],
-        }}
-        transition={{
-          duration: 20,
-          repeat: Infinity,
-          ease: "linear"
-        }}
-      ></motion.div>
     </div>
   );
 };
 
-// Main Index component with error handling wrapper
+// Main Index component
 const Index = () => {
-  const [gameError, setGameError] = useState(null);
-  
-  // Error handler for the entire game
-  const handleGameError = (error) => {
-    console.error("Game error:", error);
-    setGameError(error);
-  };
-  
-  if (gameError) {
-    return (
-      <div className="min-h-screen w-full overflow-hidden bg-gradient-to-b from-gray-900 to-black text-white flex items-center justify-center">
-        <div className="text-center p-8 bg-red-900/20 rounded-lg">
-          <h1 className="text-3xl font-bold mb-4">Game Error</h1>
-          <p className="mb-6">Something went wrong with the game. Please try again.</p>
-          <button 
-            className="px-4 py-2 bg-white text-black rounded-md"
-            onClick={() => window.location.reload()}
-          >
-            Reload Game
-          </button>
-        </div>
-      </div>
-    );
-  }
-  
   return (
     <div className="min-h-screen w-full overflow-hidden bg-gradient-to-b from-gray-900 to-black text-white">
       <BackgroundElements />
-      <ErrorBoundary onError={handleGameError}>
-        <GameProvider>
-          <GameContent />
-        </GameProvider>
-      </ErrorBoundary>
+      <GameProvider>
+        <GameContent />
+      </GameProvider>
     </div>
   );
 };
-
-// Simple error boundary component
-interface ErrorBoundaryProps {
-  onError?: (error: Error) => void;
-  children: React.ReactNode;
-}
-
-interface ErrorBoundaryState {
-  hasError: boolean;
-}
-
-class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
-  constructor(props) {
-    super(props);
-    this.state = { hasError: false };
-  }
-
-  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
-    return { hasError: true };
-  }
-
-  componentDidCatch(error, errorInfo) {
-    console.error("Game error boundary caught error:", error, errorInfo);
-    this.props.onError && this.props.onError(error);
-  }
-
-  render() {
-    if (this.state.hasError) {
-      return null; // Parent will handle the error display
-    }
-
-    return this.props.children;
-  }
-}
 
 export default Index;
