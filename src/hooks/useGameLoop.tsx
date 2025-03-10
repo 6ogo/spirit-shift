@@ -1,4 +1,3 @@
-
 import { useEffect, useRef } from 'react';
 import { useGame } from '@/contexts/GameContext';
 import { Platform } from '@/contexts/GameContext';

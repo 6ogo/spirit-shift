@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
 
 // Types
@@ -78,7 +77,7 @@ export interface GameState {
   nextProjectileId: number;
   levelProgress: number;
   worldSeed: number;
-  isTutorialLevel: boolean; // Added to track if we're on the tutorial level
+  isTutorialLevel: boolean;
 }
 
 type GameAction =
@@ -100,22 +99,24 @@ type GameAction =
   | { type: 'UPDATE_AIM_DIRECTION', payload: { x: number, y: number } }
   | { type: 'CHANGE_ELEMENT', payload: ElementType }
   | { type: 'UPDATE_HEALTH', payload: number }
-  | { type: 'UPDATE_ENERGY', payload: number }
-  | { type: 'UPDATE_SCORE', payload: number }
-  | { type: 'UPDATE_ENEMIES', payload }
+  | { type: 'UPDATE_ENEMIES', payload: Enemy[] }
   | { type: 'SET_PLATFORMS', payload: Platform[] }
   | { type: 'SET_ON_PLATFORM', payload: boolean }
   | { type: 'ADVANCE_LEVEL' }
   | { type: 'GENERATE_LEVEL' }
   | { type: 'ADD_ENEMY', payload: Enemy }
-  | { type: 'UPDATE_ENEMY', payload: Enemy }  // Added for updating individual enemies
+  | { type: 'UPDATE_ENEMY', payload: Enemy }
   | { type: 'DAMAGE_ENEMY', payload: { id: number, damage: number } }
-  | { type: 'REMOVE_ENEMY', payload: number };
+  | { type: 'REMOVE_ENEMY', payload: number }
+  | { type: 'UPDATE_PROJECTILES' }
+  | { type: 'REMOVE_PROJECTILE', payload: number }
+  | { type: 'UPDATE_ENERGY', payload: number }
+  | { type: 'UPDATE_SCORE', payload: number };
 
 // Initial state
 const initialPlayerState: PlayerState = {
   x: 100,
-  y: 450, // Moved down to spawn at the bottom
+  y: 450,
   velocityX: 0,
   velocityY: 0,
   width: 40,
@@ -643,7 +644,6 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
 
       const remainingEnemies = state.enemies.filter(enemy => enemy.health > 0);
       const defeatedCount = state.enemies.length - remainingEnemies.length;
-
       const scoreIncrease = defeatedCount * 10;
 
       return {
@@ -682,14 +682,12 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
         },
         gameOver: action.payload <= 0,
       };
-    case 'UPDATE_ENEMIES': {
+    case 'UPDATE_ENEMIES':
       return {
         ...state,
         enemies: action.payload
       };
-    }
-    case 'UPDATE_ENEMY': {
-      // Fixed: Now properly types the enemy.direction as 'left' | 'right'
+    case 'UPDATE_ENEMY':
       const updatedEnemies = state.enemies.map(enemy => 
         enemy.id === action.payload.id ? action.payload : enemy
       );
@@ -698,7 +696,6 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
         ...state,
         enemies: updatedEnemies
       };
-    }
     case 'UPDATE_ENERGY':
       return {
         ...state,
