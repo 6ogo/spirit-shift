@@ -1,5 +1,4 @@
-
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGame } from '@/contexts/GameContext';
 import { useGameLoop } from '@/hooks/useGameLoop';
@@ -12,6 +11,7 @@ import { Play, Home, RotateCcw } from 'lucide-react';
 const GameCanvas: React.FC = () => {
   const { state, dispatch } = useGame();
   const { isPlaying, isPaused } = state;
+  const gameContainerRef = useRef<HTMLDivElement>(null);
   
   // Initialize game loop
   useGameLoop();
@@ -42,6 +42,37 @@ const GameCanvas: React.FC = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
   
+  // Initial animation when game canvas loads
+  useEffect(() => {
+    if (gameContainerRef.current) {
+      // Apply initial animation
+      const container = gameContainerRef.current;
+      container.style.opacity = '0';
+      container.style.transform = 'scale(0.95)';
+      
+      // Small delay before animating in
+      setTimeout(() => {
+        container.style.transition = 'opacity 0.5s ease-out, transform 0.5s ease-out';
+        container.style.opacity = '1';
+        container.style.transform = 'scale(1)';
+      }, 100);
+    }
+  }, []);
+  
+  // Handle keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (isPaused && e.key === 'Escape') {
+        dispatch({ type: 'RESUME_GAME' });
+      } else if (isPlaying && !isPaused && e.key === 'Escape') {
+        dispatch({ type: 'PAUSE_GAME' });
+      }
+    };
+    
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isPlaying, isPaused, dispatch]);
+  
   // Pause screen component
   const PauseScreen = () => (
     <AnimatePresence>
@@ -53,17 +84,22 @@ const GameCanvas: React.FC = () => {
           className="absolute inset-0 flex flex-col items-center justify-center z-20 bg-black/50 backdrop-blur-sm"
         >
           <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="glass-panel p-8 flex flex-col items-center gap-6 rounded-xl"
+            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            transition={{ 
+              type: "spring",
+              stiffness: 300,
+              damping: 30
+            }}
+            className="glass-panel p-8 flex flex-col items-center gap-6 rounded-xl shadow-lg shadow-purple-500/20"
           >
             <div className="text-3xl font-bold mb-2 text-gradient">PAUSED</div>
             
             <div className="flex flex-col gap-3">
               <motion.button
-                whileHover={{ scale: 1.05 }}
+                whileHover={{ scale: 1.05, boxShadow: "0 0 10px 2px rgba(59, 130, 246, 0.5)" }}
                 whileTap={{ scale: 0.95 }}
-                className="flex items-center justify-center gap-2 w-48 px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-full font-bold"
+                className="flex items-center justify-center gap-2 w-48 px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-full font-bold shadow-lg shadow-blue-600/20"
                 onClick={() => dispatch({ type: 'RESUME_GAME' })}
               >
                 <Play size={20} />
@@ -71,9 +107,9 @@ const GameCanvas: React.FC = () => {
               </motion.button>
               
               <motion.button
-                whileHover={{ scale: 1.05 }}
+                whileHover={{ scale: 1.05, backgroundColor: "rgba(255, 255, 255, 0.15)" }}
                 whileTap={{ scale: 0.95 }}
-                className="flex items-center justify-center gap-2 w-48 px-6 py-3 bg-white/10 backdrop-blur-md border border-white/20 text-white rounded-full font-bold"
+                className="flex items-center justify-center gap-2 w-48 px-6 py-3 bg-white/10 backdrop-blur-md border border-white/20 text-white rounded-full font-bold transition-colors"
                 onClick={() => dispatch({ type: 'RESTART_GAME' })}
               >
                 <RotateCcw size={20} />
@@ -81,9 +117,9 @@ const GameCanvas: React.FC = () => {
               </motion.button>
               
               <motion.button
-                whileHover={{ scale: 1.05 }}
+                whileHover={{ scale: 1.05, backgroundColor: "rgba(255, 255, 255, 0.15)" }}
                 whileTap={{ scale: 0.95 }}
-                className="flex items-center justify-center gap-2 w-48 px-6 py-3 bg-white/10 backdrop-blur-md border border-white/20 text-white rounded-full font-bold"
+                className="flex items-center justify-center gap-2 w-48 px-6 py-3 bg-white/10 backdrop-blur-md border border-white/20 text-white rounded-full font-bold transition-colors"
                 onClick={() => dispatch({ type: 'END_GAME' })}
               >
                 <Home size={20} />
@@ -111,18 +147,23 @@ const GameCanvas: React.FC = () => {
           className="absolute inset-0 flex flex-col items-center justify-center z-20 bg-black/60 backdrop-blur-sm"
         >
           <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="glass-panel p-8 flex flex-col items-center gap-6 rounded-xl"
+            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            transition={{ 
+              type: "spring",
+              stiffness: 300,
+              damping: 30
+            }}
+            className="glass-panel p-8 flex flex-col items-center gap-6 rounded-xl shadow-lg shadow-red-500/20"
           >
             <div className="text-3xl font-bold mb-2 text-red-500">GAME OVER</div>
             <div className="text-xl mb-4">Score: {state.score}</div>
             
             <div className="flex flex-col gap-3">
               <motion.button
-                whileHover={{ scale: 1.05 }}
+                whileHover={{ scale: 1.05, boxShadow: "0 0 10px 2px rgba(220, 38, 38, 0.5)" }}
                 whileTap={{ scale: 0.95 }}
-                className="flex items-center justify-center gap-2 w-48 px-6 py-3 bg-gradient-to-r from-red-600 to-purple-600 text-white rounded-full font-bold"
+                className="flex items-center justify-center gap-2 w-48 px-6 py-3 bg-gradient-to-r from-red-600 to-purple-600 text-white rounded-full font-bold shadow-lg shadow-red-600/20"
                 onClick={() => dispatch({ type: 'RESTART_GAME' })}
               >
                 <RotateCcw size={20} />
@@ -130,9 +171,9 @@ const GameCanvas: React.FC = () => {
               </motion.button>
               
               <motion.button
-                whileHover={{ scale: 1.05 }}
+                whileHover={{ scale: 1.05, backgroundColor: "rgba(255, 255, 255, 0.15)" }}
                 whileTap={{ scale: 0.95 }}
-                className="flex items-center justify-center gap-2 w-48 px-6 py-3 bg-white/10 backdrop-blur-md border border-white/20 text-white rounded-full font-bold"
+                className="flex items-center justify-center gap-2 w-48 px-6 py-3 bg-white/10 backdrop-blur-md border border-white/20 text-white rounded-full font-bold transition-colors"
                 onClick={() => dispatch({ type: 'END_GAME' })}
               >
                 <Home size={20} />
@@ -154,7 +195,7 @@ const GameCanvas: React.FC = () => {
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: 20 }}
           transition={{ delay: 1, duration: 0.5 }}
-          className="absolute top-4 right-4 text-white text-sm bg-black/50 p-3 rounded-md backdrop-blur-sm z-10"
+          className="absolute top-4 right-4 text-white text-sm bg-black/50 p-3 rounded-md backdrop-blur-sm z-10 border border-white/10"
         >
           <h3 className="font-bold mb-2">Controls:</h3>
           <div className="grid grid-cols-2 gap-x-4 gap-y-1">
@@ -172,9 +213,11 @@ const GameCanvas: React.FC = () => {
   
   return (
     <div 
+      ref={gameContainerRef}
       className="game-container relative overflow-hidden bg-gradient-to-b from-gray-900 via-gray-800 to-black"
       style={{
         perspective: '1000px',
+        willChange: 'transform, opacity'
       }}
     >
       {/* Dynamic background elements based on current element */}
@@ -215,7 +258,7 @@ const GameCanvas: React.FC = () => {
       <div className="absolute inset-0">
         {/* Camera follows player horizontally */}
         <div 
-          className="absolute transition-transform duration-300 ease-out"
+          className="absolute transition-transform duration-300 ease-out will-change-transform"
           style={{ 
             transform: `translateX(${
               Math.min(
@@ -263,8 +306,8 @@ const GameCanvas: React.FC = () => {
         <div className="flex gap-2">
           <motion.button
             whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.9 }}
-            className="w-16 h-16 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center"
+            whileTap={{ scale: 0.9, backgroundColor: "rgba(255, 255, 255, 0.3)" }}
+            className="w-16 h-16 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center shadow-lg border border-white/10"
             onTouchStart={() => dispatch({ type: 'PLAYER_MOVE_LEFT', payload: true })}
             onTouchEnd={() => dispatch({ type: 'PLAYER_MOVE_LEFT', payload: false })}
           >
@@ -272,8 +315,8 @@ const GameCanvas: React.FC = () => {
           </motion.button>
           <motion.button
             whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.9 }}
-            className="w-16 h-16 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center"
+            whileTap={{ scale: 0.9, backgroundColor: "rgba(255, 255, 255, 0.3)" }}
+            className="w-16 h-16 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center shadow-lg border border-white/10"
             onTouchStart={() => dispatch({ type: 'PLAYER_MOVE_RIGHT', payload: true })}
             onTouchEnd={() => dispatch({ type: 'PLAYER_MOVE_RIGHT', payload: false })}
           >
@@ -284,8 +327,8 @@ const GameCanvas: React.FC = () => {
         <div className="flex gap-2">
           <motion.button
             whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.9 }}
-            className="w-16 h-16 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center"
+            whileTap={{ scale: 0.9, backgroundColor: "rgba(255, 255, 255, 0.3)" }}
+            className="w-16 h-16 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center shadow-lg border border-white/10"
             onTouchStart={() => dispatch({ type: 'PLAYER_DUCK', payload: true })}
             onTouchEnd={() => dispatch({ type: 'PLAYER_DUCK', payload: false })}
           >
@@ -293,8 +336,8 @@ const GameCanvas: React.FC = () => {
           </motion.button>
           <motion.button
             whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.9 }}
-            className="w-16 h-16 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center"
+            whileTap={{ scale: 0.9, backgroundColor: "rgba(255, 255, 255, 0.3)" }}
+            className="w-16 h-16 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center shadow-lg border border-white/10"
             onClick={() => dispatch({ type: 'PLAYER_JUMP' })}
           >
             ↑
