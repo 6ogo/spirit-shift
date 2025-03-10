@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGame } from '@/contexts/GameContext';
 import { Play, Info, Volume2, VolumeX, Settings } from 'lucide-react';
@@ -8,6 +7,7 @@ const MainMenu: React.FC = () => {
   const { dispatch, elementColors } = useGame();
   const [showInfo, setShowInfo] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
+  const [isButtonPressed, setIsButtonPressed] = useState(false);
   
   // Element icons that float in the background
   const ElementIcon = ({ element, x, y, delay }: { element: string, x: number, y: number, delay: number }) => (
@@ -86,6 +86,14 @@ const MainMenu: React.FC = () => {
     </motion.div>
   );
   
+  const handlePlayGame = () => {
+    setIsButtonPressed(true);
+    // Add a small delay to allow the button animation to complete
+    setTimeout(() => {
+      dispatch({ type: 'START_GAME' });
+    }, 300);
+  };
+  
   return (
     <div className="relative w-full h-screen overflow-hidden">
       {/* Animated background */}
@@ -115,9 +123,14 @@ const MainMenu: React.FC = () => {
           <h1 className="text-6xl sm:text-7xl md:text-8xl font-bold tracking-tighter text-gradient">
             SPIRIT SHIFT
           </h1>
-          <p className="mt-4 text-lg sm:text-xl text-white/70">
+          <motion.p 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.3, duration: 0.5 }}
+            className="mt-4 text-lg sm:text-xl text-white/70"
+          >
             Possess. Adapt. Conquer.
-          </p>
+          </motion.p>
         </motion.div>
         
         <div className="flex flex-col gap-4 items-center">
@@ -125,13 +138,36 @@ const MainMenu: React.FC = () => {
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.3 }}
-            whileHover={{ scale: 1.05 }}
+            whileHover={{ 
+              scale: 1.05,
+              boxShadow: "0 0 20px 5px rgba(147, 51, 234, 0.5)"
+            }}
             whileTap={{ scale: 0.95 }}
-            className="flex items-center gap-3 px-10 py-4 bg-gradient-to-r from-purple-600 to-blue-600 rounded-full text-xl font-bold shadow-lg shadow-purple-600/20"
-            onClick={() => dispatch({ type: 'START_GAME' })}
+            className="flex items-center gap-3 px-10 py-4 bg-gradient-to-r from-purple-600 to-blue-600 rounded-full text-xl font-bold shadow-lg shadow-purple-600/20 relative overflow-hidden group"
+            onClick={handlePlayGame}
+            disabled={isButtonPressed}
           >
+            <motion.span 
+              className="absolute inset-0 bg-white/20"
+              initial={{ x: "-100%", opacity: 0 }}
+              animate={isButtonPressed ? { x: "100%", opacity: 0.3 } : { x: "-100%", opacity: 0 }}
+              transition={{ duration: 0.5 }}
+            />
             <Play size={24} />
-            Play Game
+            <span className="relative z-10">Play Game</span>
+            
+            {/* Pulsing effect around button */}
+            <motion.span
+              className="absolute inset-0 rounded-full"
+              animate={{ 
+                boxShadow: ["0 0 0px 0px rgba(147, 51, 234, 0)", "0 0 15px 2px rgba(147, 51, 234, 0.5)", "0 0 0px 0px rgba(147, 51, 234, 0)"]
+              }}
+              transition={{
+                duration: 2,
+                repeat: Infinity,
+                repeatType: "loop"
+              }}
+            />
           </motion.button>
           
           <div className="flex gap-4 mt-6">
