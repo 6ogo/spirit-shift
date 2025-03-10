@@ -1,4 +1,3 @@
-
 import { useEffect, useRef } from 'react';
 import { useGame } from '@/contexts/GameContext';
 import { Platform } from '@/contexts/GameContext';
@@ -12,6 +11,9 @@ export const useGameLoop = ({ fps = 60 }: GameLoopProps = {}) => {
   const requestRef = useRef<number>();
   const previousTimeRef = useRef<number>();
   const fpsInterval = 1000 / fps;
+  
+  // Store the last position to detect movement issues
+  const lastPositionRef = useRef({ x: 0, y: 0 });
   
   const gameLoop = (time: number) => {
     if (previousTimeRef.current === undefined) {
@@ -101,6 +103,9 @@ export const useGameLoop = ({ fps = 60 }: GameLoopProps = {}) => {
   }
   
   const updateGameState = (deltaTime: number) => {
+    // Debug movement speed - ensure it's not too slow to notice
+    // console.log("Delta time:", deltaTime, "Movement speed:", state.player.velocityX * deltaTime * 60);
+    
     // Gravity effect - adjusted for deltaTime
     const gravity = 0.8 * 60 * deltaTime;
     
@@ -112,8 +117,31 @@ export const useGameLoop = ({ fps = 60 }: GameLoopProps = {}) => {
     let playerWidth = state.player.width;
     let playerHeight = state.player.height;
     
-    // Apply horizontal movement - smoother with deltaTime
-    playerX += velocityX * deltaTime * 60;
+    // IMPORTANT: Force a minimum velocity when moving to ensure movement is visible
+    // This fixes cases where deltaTime is so small that movement isn't apparent
+    if (state.player.isMovingLeft) {
+      const moveSpeed = state.player.isDucking ? 3 : 5; // Slower when ducking
+      velocityX = -moveSpeed; 
+    } else if (state.player.isMovingRight) {
+      const moveSpeed = state.player.isDucking ? 3 : 5; // Slower when ducking
+      velocityX = moveSpeed;
+    }
+    
+    // Apply horizontal movement - apply a minimum movement to ensure it's visible
+    const minMovement = 3; // Minimum pixels to move per frame
+    if (velocityX > 0) {
+      playerX += Math.max(velocityX * deltaTime * 60, minMovement);
+    } else if (velocityX < 0) {
+      playerX += Math.min(velocityX * deltaTime * 60, -minMovement);
+    }
+    
+    // Debug output if position hasn't changed significantly
+    if (Math.abs(playerX - lastPositionRef.current.x) < 0.01 && Math.abs(velocityX) > 0) {
+      console.warn("Player not moving despite velocity:", velocityX);
+    }
+    
+    // Update last position reference
+    lastPositionRef.current = { x: playerX, y: playerY };
     
     // Ensure player doesn't go off-screen horizontally
     playerX = Math.max(playerWidth / 2, Math.min(1600 - playerWidth / 2, playerX));
@@ -279,13 +307,16 @@ export const useGameLoop = ({ fps = 60 }: GameLoopProps = {}) => {
   useEffect(() => {
     if (state.isPlaying && !state.isPaused) {
       requestRef.current = requestAnimationFrame(gameLoop);
+      console.log("Game loop started");
     } else if (requestRef.current) {
       cancelAnimationFrame(requestRef.current);
+      console.log("Game loop stopped");
     }
     
     return () => {
       if (requestRef.current) {
         cancelAnimationFrame(requestRef.current);
+        console.log("Game loop cleanup");
       }
     };
   }, [state.isPlaying, state.isPaused, state.gameOver]);
