@@ -12,15 +12,31 @@ export const useGameLoop = ({ fps = 60 }: GameLoopProps = {}) => {
   const previousTimeRef = useRef<number>();
   const fpsInterval = 1000 / fps;
 
+  // Store performance metrics
+  const metricsRef = useRef({
+    lastFpsUpdate: 0,
+    frameCount: 0,
+    currentFps: 0
+  });
+
   // Store the last position to detect movement issues
   const lastPositionRef = useRef({ x: 0, y: 0 });
 
   const gameLoop = (time: number) => {
     if (previousTimeRef.current === undefined) {
       previousTimeRef.current = time;
+      metricsRef.current.lastFpsUpdate = time;
     }
 
     const elapsed = time - previousTimeRef.current;
+
+    // Calculate FPS for optimization
+    metricsRef.current.frameCount++;
+    if (time - metricsRef.current.lastFpsUpdate >= 1000) {
+      metricsRef.current.currentFps = metricsRef.current.frameCount;
+      metricsRef.current.frameCount = 0;
+      metricsRef.current.lastFpsUpdate = time;
+    }
 
     if (elapsed > fpsInterval) {
       // Only update the game state if we're playing and not paused
@@ -228,6 +244,9 @@ export const useGameLoop = ({ fps = 60 }: GameLoopProps = {}) => {
       }
     }
 
+    // Cache current position for next frame comparison
+    lastPositionRef.current = { x: playerX, y: playerY };
+
     // Apply element-specific effects
     switch (state.player.currentElement) {
       case 'air':
@@ -292,97 +311,102 @@ export const useGameLoop = ({ fps = 60 }: GameLoopProps = {}) => {
       });
     }
     
-    // Update projectiles with proper direction and movement
-    if (state.projectiles.length > 0) {
-      dispatch({ type: 'UPDATE_PROJECTILES' });
-    }
-    
     // Fix enemy movement logic to ensure enemies actually move
-    state.enemies.forEach((enemy) => {
-      // Calculate distance to player
-      const distanceToPlayer = Math.abs(enemy.x - state.player.x);
-
-      // Only move if within a certain range (enemy sight)
-      if (distanceToPlayer < 400) {
-        // Determine direction to player - Fixed with proper type
-        const directionToPlayer: 'left' | 'right' = enemy.x < state.player.x ? 'right' : 'left';
-
-        // Calculate new x position
-        let moveSpeed = enemy.speed * cappedDelta * 60;
-        const newX = directionToPlayer === 'right' ?
-          enemy.x + moveSpeed :
-          enemy.x - moveSpeed;
-
-        // Check if movement would cause collision with a platform's side
-        let canMove = true;
-        let wouldFall = true;
-
-        // Check for side collisions with platforms and check if there's ground ahead
-        for (const platform of state.platforms) {
-          // Check if enemy is at the same height as platform
-          if (
-            enemy.y >= platform.y - enemy.height &&
-            enemy.y <= platform.y + platform.height
-          ) {
-            // Check if would hit platform from side
-            if (directionToPlayer === 'right' &&
-              newX + enemy.width / 2 >= platform.x &&
-              enemy.x + enemy.width / 2 < platform.x) {
-              canMove = false;
-            } else if (directionToPlayer === 'left' &&
-              newX - enemy.width / 2 <= platform.x + platform.width &&
-              enemy.x - enemy.width / 2 > platform.x + platform.width) {
-              canMove = false;
+    if (state.enemies.length > 0) {
+      const updatedEnemies = state.enemies.map(enemy => {
+        // Calculate distance to player
+        const distanceToPlayer = Math.abs(enemy.x - state.player.x);
+  
+        // Only move if within a certain range (enemy sight)
+        if (distanceToPlayer < 400) {
+          // Determine direction to player - Fixed with proper type
+          const directionToPlayer: 'left' | 'right' = enemy.x < state.player.x ? 'right' : 'left';
+  
+          // Calculate new x position
+          let moveSpeed = enemy.speed * cappedDelta * 60;
+          const newX = directionToPlayer === 'right' ?
+            enemy.x + moveSpeed :
+            enemy.x - moveSpeed;
+  
+          // Check if movement would cause collision with a platform's side
+          let canMove = true;
+          let wouldFall = true;
+  
+          // Check for side collisions with platforms and check if there's ground ahead
+          for (const platform of state.platforms) {
+            // Check if enemy is at the same height as platform
+            if (
+              enemy.y >= platform.y - enemy.height &&
+              enemy.y <= platform.y + platform.height
+            ) {
+              // Check if would hit platform from side
+              if (directionToPlayer === 'right' &&
+                newX + enemy.width / 2 >= platform.x &&
+                enemy.x + enemy.width / 2 < platform.x) {
+                canMove = false;
+              } else if (directionToPlayer === 'left' &&
+                newX - enemy.width / 2 <= platform.x + platform.width &&
+                enemy.x - enemy.width / 2 > platform.x + platform.width) {
+                canMove = false;
+              }
+            }
+  
+            // Check if there's ground ahead
+            if (
+              (directionToPlayer === 'right' &&
+                newX + enemy.width / 2 >= platform.x &&
+                newX - enemy.width / 2 <= platform.x + platform.width) ||
+              (directionToPlayer === 'left' &&
+                newX + enemy.width / 2 >= platform.x &&
+                newX - enemy.width / 2 <= platform.x + platform.width)
+            ) {
+              // Check if platform is at the right height
+              if (Math.abs(enemy.y - platform.y) < 5) {
+                wouldFall = false;
+              }
             }
           }
-
-          // Check if there's ground ahead
-          if (
-            (directionToPlayer === 'right' &&
-              newX + enemy.width / 2 >= platform.x &&
-              newX - enemy.width / 2 <= platform.x + platform.width) ||
-            (directionToPlayer === 'left' &&
-              newX + enemy.width / 2 >= platform.x &&
-              newX - enemy.width / 2 <= platform.x + platform.width)
-          ) {
-            // Check if platform is at the right height
-            if (Math.abs(enemy.y - platform.y) < 5) {
-              wouldFall = false;
-            }
+  
+          if (canMove && !wouldFall) {
+            // Return updated enemy
+            return {
+              ...enemy,
+              x: newX,
+              direction: directionToPlayer
+            };
           }
         }
-
-        if (canMove && !wouldFall) {
-          // Create updated enemy with proper position and direction
-          const updatedEnemy = {
-            ...enemy,
-            x: newX,
-            direction: directionToPlayer
-          };
-          
-          // Dispatch to update enemy state
-          dispatch({
-            type: 'UPDATE_ENEMY',
-            payload: updatedEnemy
-          });
-        }
+  
+        // Return unchanged enemy if it can't move
+        return enemy;
+      });
+  
+      // Only dispatch if there are actual changes
+      const hasChanges = updatedEnemies.some((enemy, index) => 
+        enemy.x !== state.enemies[index].x || enemy.direction !== state.enemies[index].direction
+      );
+  
+      if (hasChanges) {
+        dispatch({ type: 'UPDATE_ENEMIES', payload: updatedEnemies });
       }
-    });
+    }
   };
 
   useEffect(() => {
     if (state.isPlaying && !state.isPaused) {
+      // Clean up any existing animation frame
+      if (requestRef.current) {
+        cancelAnimationFrame(requestRef.current);
+      }
+      // Start a new game loop
       requestRef.current = requestAnimationFrame(gameLoop);
-      console.log("Game loop started");
     } else if (requestRef.current) {
       cancelAnimationFrame(requestRef.current);
-      console.log("Game loop stopped");
     }
 
     return () => {
       if (requestRef.current) {
         cancelAnimationFrame(requestRef.current);
-        console.log("Game loop cleanup");
       }
     };
   }, [state.isPlaying, state.isPaused, state.gameOver]);

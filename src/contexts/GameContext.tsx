@@ -294,8 +294,6 @@ const initialGameState: GameState = {
 
 // Game reducer
 const gameReducer = (state: GameState, action: GameAction): GameState => {
-  console.log("Game reducer:", action.type, action);
-
   switch (action.type) {
     case 'START_GAME': {
       const newSeed = Date.now();
@@ -371,7 +369,6 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
         },
       };
     case 'PLAYER_MOVE_LEFT': {
-      console.log(`PLAYER_MOVE_LEFT: ${action.payload}`);
       const moveSpeed = state.player.isDucking ? 3 : 5;
       return {
         ...state,
@@ -384,7 +381,6 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
       };
     }
     case 'PLAYER_MOVE_RIGHT': {
-      console.log(`PLAYER_MOVE_RIGHT: ${action.payload}`);
       const moveSpeedRight = state.player.isDucking ? 3 : 5;
       return {
         ...state,
@@ -397,7 +393,6 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
       };
     }
     case 'PLAYER_DUCK': {
-      console.log(`PLAYER_DUCK: ${action.payload}`);
       return {
         ...state,
         player: {
@@ -411,9 +406,7 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
       };
     }
     case 'PLAYER_JUMP': {
-      console.log(`PLAYER_JUMP attempt - onPlatform: ${state.player.onPlatform}, isJumping: ${state.player.isJumping}`);
       if (state.player.isJumping || !state.player.onPlatform) {
-        console.log("Jump rejected - already jumping or not on platform");
         return state;
       }
 
@@ -434,7 +427,6 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
         default:
           jumpVelocity = -15;
       }
-      console.log(`Jump accepted with velocity: ${jumpVelocity}`);
       return {
         ...state,
         player: {
@@ -532,13 +524,6 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
         normalizedX = state.player.facingDirection === 'right' ? 1 : -1;
         normalizedY = 0;
       }
-
-      console.log("Shooting projectile with direction:", { 
-        aimX: state.player.aimDirectionX, 
-        aimY: state.player.aimDirectionY,
-        normalizedX, 
-        normalizedY
-      });
 
       const newProjectile: ProjectileState = {
         id: state.nextProjectileId,
@@ -790,10 +775,6 @@ const GameContext = createContext<GameContextType | undefined>(undefined);
 export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [state, dispatch] = useReducer(gameReducer, initialGameState);
 
-  useEffect(() => {
-    // console.log("Game state updated:", state);
-  }, [state]);
-
   const elementColors: Record<ElementType, string> = {
     spirit: '#2A2A2A',
     fire: '#F24236',
@@ -810,99 +791,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     air: 'Air',
   };
 
-  useEffect(() => {
-    if (!state.isPlaying || state.isPaused) return;
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      switch (e.key) {
-        case ' ':
-        case 'ArrowUp':
-        case 'w':
-        case 'W':
-          dispatch({ type: 'PLAYER_JUMP' });
-          break;
-        case 'ArrowLeft':
-        case 'a':
-        case 'A':
-          dispatch({ type: 'PLAYER_MOVE_LEFT', payload: true });
-          break;
-        case 'ArrowRight':
-        case 'd':
-        case 'D':
-          dispatch({ type: 'PLAYER_MOVE_RIGHT', payload: true });
-          break;
-        case 'ArrowDown':
-        case 's':
-        case 'S':
-          dispatch({ type: 'PLAYER_DUCK', payload: true });
-          break;
-        case '1':
-          dispatch({ type: 'CHANGE_ELEMENT', payload: 'spirit' });
-          break;
-        case '2':
-          dispatch({ type: 'CHANGE_ELEMENT', payload: 'fire' });
-          break;
-        case '3':
-          dispatch({ type: 'CHANGE_ELEMENT', payload: 'water' });
-          break;
-        case '4':
-          dispatch({ type: 'CHANGE_ELEMENT', payload: 'earth' });
-          break;
-        case '5':
-          dispatch({ type: 'CHANGE_ELEMENT', payload: 'air' });
-          break;
-        case 'Escape':
-          dispatch({ type: 'PAUSE_GAME' });
-          break;
-        case 'f':
-        case 'F':
-          dispatch({ type: 'PLAYER_SHOOT' });
-          break;
-      }
-    };
-
-    const handleKeyUp = (e: KeyboardEvent) => {
-      switch (e.key) {
-        case 'ArrowLeft':
-        case 'a':
-        case 'A':
-          dispatch({ type: 'PLAYER_MOVE_LEFT', payload: false });
-          break;
-        case 'ArrowRight':
-        case 'd':
-        case 'D':
-          dispatch({ type: 'PLAYER_MOVE_RIGHT', payload: false });
-          break;
-        case 'ArrowDown':
-        case 's':
-        case 'S':
-          dispatch({ type: 'PLAYER_DUCK', payload: false });
-          break;
-      }
-    };
-
-    // Using document for keyboard events for better reliability
-    document.addEventListener('keydown', handleKeyDown);
-    document.addEventListener('keyup', handleKeyUp);
-
-    return () => {
-      document.removeEventListener('keydown', handleKeyDown);
-      document.removeEventListener('keyup', handleKeyUp);
-    };
-  }, [state.isPlaying, state.isPaused]);
-
-  useEffect(() => {
-    if (!state.isPlaying || state.isPaused || state.gameOver) return;
-
-    const projectileInterval = setInterval(() => {
-      if (state.projectiles.length > 0) {
-        dispatch({ type: 'UPDATE_PROJECTILES' });
-      }
-    }, 50);
-
-    return () => clearInterval(projectileInterval);
-  }, [state.isPlaying, state.isPaused, state.gameOver, state.projectiles.length]);
-
+  // Effect to check if player has moved far enough to proceed to next level
   useEffect(() => {
     if (!state.isPlaying || state.isPaused || state.gameOver) return;
 

@@ -77,7 +77,7 @@ const Spirit: React.FC<SpiritProps> = ({ element, x, y, onPossess }) => {
           initial={{ opacity: 0, y: 5 }}
           animate={{ opacity: 0.9, y: 0 }}
           transition={{ delay: 0.2 }}
-          className="absolute left-1/2 -translate-x-1/2 -bottom-6 whitespace-nowrap text-sm font-medium"
+          className="absolute left-1/2 -translate-x-1/2 -bottom-6 whitespace-nowrap text-sm font-medium text-white"
         >
           {elementNames[element]}
         </motion.div>

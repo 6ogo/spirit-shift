@@ -100,7 +100,7 @@ const Player: React.FC<PlayerProps> = ({ width = 40, height = 50 }) => {
   
   return (
     <div 
-      className="absolute transition-transform"
+      className="absolute transition-transform will-change-transform"
       style={{ 
         left: player.x, 
         top: player.y,
@@ -172,7 +172,7 @@ const Player: React.FC<PlayerProps> = ({ width = 40, height = 50 }) => {
           
           {/* Moving trail for fire and air elements */}
           {(player.currentElement === 'fire' || player.currentElement === 'air') && 
-            Math.abs(player.velocityX) > 0 && (
+            Math.abs(player.velocityX) > 1 && (
             <motion.div
               className="absolute -z-10 h-full w-full opacity-50"
               animate={{

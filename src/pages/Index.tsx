@@ -1,26 +1,33 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { GameProvider, useGame } from '@/contexts/GameContext';
 import GameCanvas from '@/components/GameCanvas';
 import MainMenu from '@/components/UI/MainMenu';
 import { motion } from 'framer-motion';
 
-// Simple debug component to help troubleshoot
+// Debug component - toggle with 'D' key
 const DebugInfo = ({ state }) => (
   <div className="fixed top-0 left-0 bg-black/70 text-white p-2 z-50 text-xs">
     <div>isPlaying: {String(state.isPlaying)}</div>
     <div>isPaused: {String(state.isPaused)}</div>
     <div>gameOver: {String(state.gameOver)}</div>
-    <div>player.x: {state.player.x}</div>
-    <div>player.y: {state.player.y}</div>
+    <div>player.x: {Math.round(state.player.x)}</div>
+    <div>player.y: {Math.round(state.player.y)}</div>
+    <div>player.velocityX: {state.player.velocityX}</div>
+    <div>player.velocityY: {Math.round(state.player.velocityY)}</div>
+    <div>player.isMovingLeft: {String(state.player.isMovingLeft)}</div>
+    <div>player.isMovingRight: {String(state.player.isMovingRight)}</div>
+    <div>player.isJumping: {String(state.player.isJumping)}</div>
+    <div>player.onPlatform: {String(state.player.onPlatform)}</div>
   </div>
 );
 
-// GameContent component with simplified approach
+// GameContent component containing the actual game elements
 const GameContent = () => {
-  const { state, dispatch } = useGame();
-  const [showDebug, setShowDebug] = useState(true);
+  const { state } = useGame();
+  const [showDebug, setShowDebug] = useState(false);
+  const gameContainerRef = useRef(null);
   
-  // Add key handling to toggle debug info with D key
+  // Add keyboard handling for debug toggle
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.key === 'd' || e.key === 'D') {
@@ -32,48 +39,41 @@ const GameContent = () => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
   
-  // Log state changes to help debug
+  // Focus the game container when playing
   useEffect(() => {
-    console.log("STATE UPDATE:", 
-      { isPlaying: state.isPlaying, isPaused: state.isPaused, gameOver: state.gameOver });
-    
-    // Force a re-render whenever the game state changes
-    if (state.isPlaying) {
-      // This is a simple hack to ensure the component re-renders
-      setTimeout(() => {
-        const gameContainer = document.querySelector('.game-container');
-        if (gameContainer) {
-          console.log("Game container found and updated");
-          (gameContainer as HTMLElement).style.display = 'block';
-        } else {
-          console.error("Game container not found in DOM");
-        }
-      }, 100);
+    if (state.isPlaying && gameContainerRef.current) {
+      gameContainerRef.current.focus();
     }
-  }, [state.isPlaying, state.isPaused, state.gameOver]);
+  }, [state.isPlaying]);
   
   return (
-    <div className="w-full h-full flex items-center justify-center">
-      {/* Conditionally render content based on game state */}
+    <div className="w-full h-full flex items-center justify-center" ref={gameContainerRef} tabIndex={-1}>
+      {/* Main menu - shown when not playing */}
       {!state.isPlaying && (
         <div className="w-full h-full z-10">
           <MainMenu />
         </div>
       )}
       
+      {/* Game canvas - shown when playing */}
       {state.isPlaying && (
-        <div className="w-full h-full absolute inset-0 z-20">
+        <motion.div 
+          className="w-full h-full absolute inset-0 z-20"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.5 }}
+        >
           <GameCanvas />
-        </div>
+        </motion.div>
       )}
       
-      {/* Always-visible debug overlay (toggle with D key) */}
+      {/* Optional debug overlay */}
       {showDebug && <DebugInfo state={state} />}
     </div>
   );
 };
 
-// Background elements component
+// Background visual elements
 const BackgroundElements = () => {
   return (
     <div className="fixed inset-0 -z-10 overflow-hidden">
@@ -115,8 +115,38 @@ const BackgroundElements = () => {
   );
 };
 
-// Main Index component
+// Main Index component with error boundary
 const Index = () => {
+  // Add error boundary handling
+  const [hasError, setHasError] = useState(false);
+
+  useEffect(() => {
+    const handleError = (error) => {
+      console.error('Game error caught:', error);
+      setHasError(true);
+    };
+
+    window.addEventListener('error', handleError);
+    return () => window.removeEventListener('error', handleError);
+  }, []);
+
+  if (hasError) {
+    return (
+      <div className="min-h-screen w-full flex items-center justify-center bg-gray-900 text-white">
+        <div className="text-center p-8">
+          <h1 className="text-2xl font-bold mb-4">Oops! Something went wrong</h1>
+          <p className="mb-4">The game encountered an error. Please refresh the page to try again.</p>
+          <button 
+            className="px-4 py-2 bg-blue-600 rounded-md"
+            onClick={() => window.location.reload()}
+          >
+            Refresh Page
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen w-full overflow-hidden bg-gradient-to-b from-gray-900 to-black text-white">
       <BackgroundElements />

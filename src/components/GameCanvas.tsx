@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGame } from '@/contexts/GameContext';
@@ -7,7 +6,7 @@ import Player from './Player';
 import Platform from './Platform';
 import Spirit from './Spirit';
 import GameHUD from './UI/GameHUD';
-import { Play, Home, RotateCcw, Flame, Droplet, Leaf, Wind, Ghost } from 'lucide-react';
+import { Play, Home, RotateCcw, Flame, Droplet, Leaf, Wind, Ghost, ArrowRight } from 'lucide-react';
 
 // Enemy component
 const Enemy = ({ enemy }) => {
@@ -119,7 +118,6 @@ const ElementSelection = () => {
               : 'none'
           }}
           onClick={() => {
-            console.log(`Element button clicked: ${element}`);
             dispatch({ type: 'CHANGE_ELEMENT', payload: element });
           }}
         >
@@ -139,6 +137,7 @@ const GameCanvas: React.FC = () => {
   const gameContainerRef = useRef<HTMLDivElement>(null);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const [tutorialVisible, setTutorialVisible] = useState(true);
+  const [cameraLocked, setCameraLocked] = useState(true);
 
   // Initialize game loop
   useGameLoop();
@@ -161,14 +160,21 @@ const GameCanvas: React.FC = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Hide tutorial when moving right
+  // Hide tutorial when moving right and unlock camera
   useEffect(() => {
     if (state.player.x > 300 && tutorialVisible) {
       setTutorialVisible(false);
     } else if (state.player.x < 200 && !tutorialVisible && isTutorialLevel) {
       setTutorialVisible(true);
     }
-  }, [state.player.x, tutorialVisible, isTutorialLevel]);
+    
+    // Unlock camera after moving right beyond threshold
+    if (state.player.x > 350 && cameraLocked) {
+      setCameraLocked(false);
+    } else if (state.player.x < 250 && !cameraLocked && isTutorialLevel) {
+      setCameraLocked(true);
+    }
+  }, [state.player.x, tutorialVisible, isTutorialLevel, cameraLocked]);
 
   // Mouse tracking for aiming
   useEffect(() => {
@@ -183,10 +189,14 @@ const GameCanvas: React.FC = () => {
 
         // Calculate direction vector from player to mouse
         // Account for camera offset to get accurate aiming
-        const cameraOffsetX = Math.min(
-          Math.max(windowSize.width / 2 - state.player.x, -800 + windowSize.width / 2),
-          0
-        );
+        let cameraOffsetX = 0;
+        
+        if (!cameraLocked) {
+          cameraOffsetX = Math.min(
+            Math.max(windowSize.width / 2 - state.player.x, -800 + windowSize.width / 2),
+            0
+          );
+        }
         
         // Get the actual player position on screen
         const playerScreenX = state.player.x + cameraOffsetX;
@@ -224,47 +234,40 @@ const GameCanvas: React.FC = () => {
         gameContainerRef.current.removeEventListener('mousedown', handleMouseClick);
       }
     };
-  }, [isPlaying, isPaused, state.player.x, state.player.y, windowSize, dispatch]);
+  }, [isPlaying, isPaused, state.player.x, state.player.y, windowSize, dispatch, cameraLocked]);
 
-  // Add shoot button event handler
-  const handleShoot = () => {
-    dispatch({ type: 'PLAYER_SHOOT' });
-  };
-
-  // Keyboard event handling 
+  // Keyboard event handling - Consolidated here only
   useEffect(() => {
     if (!isPlaying || isPaused) return;
 
-    console.log("Setting up keyboard controls");
+    console.log("Setting up keyboard controls in GameCanvas");
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      console.log(`Key pressed: ${e.key}`);
+      // Prevent default actions for game controls to avoid scrolling
+      if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' ', 'w', 'a', 's', 'd'].includes(e.key)) {
+        e.preventDefault();
+      }
       
       switch (e.key.toLowerCase()) {
         case 'w':
         case 'arrowup':
-          console.log("Jump action triggered");
           dispatch({ type: 'PLAYER_JUMP' });
           break;
         case 'a':
         case 'arrowleft':
-          console.log("Move left action triggered");
           dispatch({ type: 'PLAYER_MOVE_LEFT', payload: true });
           break;
         case 'd':
         case 'arrowright':
-          console.log("Move right action triggered");
           dispatch({ type: 'PLAYER_MOVE_RIGHT', payload: true });
           break;
         case 's':
         case 'arrowdown':
-          console.log("Duck action triggered");
           dispatch({ type: 'PLAYER_DUCK', payload: true });
           break;
         case ' ':
-          console.log("Jump/Shoot action triggered");
+          // Space only jumps, doesn't shoot
           dispatch({ type: 'PLAYER_JUMP' });
-          dispatch({ type: 'PLAYER_SHOOT' });
           break;
         case '1':
           dispatch({ type: 'CHANGE_ELEMENT', payload: 'spirit' });
@@ -291,8 +294,6 @@ const GameCanvas: React.FC = () => {
     };
 
     const handleKeyUp = (e: KeyboardEvent) => {
-      console.log(`Key released: ${e.key}`);
-      
       switch (e.key.toLowerCase()) {
         case 'a':
         case 'arrowleft':
@@ -309,7 +310,7 @@ const GameCanvas: React.FC = () => {
       }
     };
 
-    // Use document for keyboard events instead of window
+    // Use document for keyboard events for better coverage
     document.addEventListener('keydown', handleKeyDown);
     document.addEventListener('keyup', handleKeyUp);
 
@@ -397,9 +398,9 @@ const GameCanvas: React.FC = () => {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="absolute top-4 right-4 text-white text-sm bg-black/50 p-3 rounded-md backdrop-blur-sm z-10 border border-white/10"
+        className="absolute top-10 left-1/2 -translate-x-1/2 text-white text-sm bg-black/50 p-3 rounded-md backdrop-blur-sm z-10 border border-white/10"
       >
-        <h3 className="font-bold mb-2">Controls:</h3>
+        <h3 className="font-bold mb-2 text-center">Controls:</h3>
         <div className="grid grid-cols-2 gap-x-4 gap-y-1">
           <div>W / Space / ↑</div><div>Jump</div>
           <div>A / ←</div><div>Move Left</div>
@@ -421,7 +422,7 @@ const GameCanvas: React.FC = () => {
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: -20 }}
         transition={{ duration: 0.5 }}
-        className="absolute bottom-32 left-1/2 -translate-x-1/2 text-white text-center z-10 p-4 bg-black/60 rounded-md backdrop-blur-sm max-w-lg"
+        className="absolute top-40 left-1/2 -translate-x-1/2 text-white text-center z-10 p-4 bg-black/60 rounded-md backdrop-blur-sm max-w-lg"
       >
         <h3 className="font-bold text-xl mb-3">Element Powers</h3>
         <p className="mb-3">Each element has unique abilities and strengths against enemies:</p>
@@ -432,7 +433,28 @@ const GameCanvas: React.FC = () => {
           <div className="text-left"><span className="font-bold text-purple-400">Air:</span> Strong against Earth, weak to Fire</div>
         </div>
         <p className="mt-3 text-sm opacity-70">Press the buttons below or number keys 1-5 to switch elements</p>
-        <p className="mt-2 text-sm text-yellow-300">Move right to continue to the first level →</p>
+      </motion.div>
+    ) : null
+  );
+
+  // Start playing prompt
+  const StartPlayingPrompt = () => (
+    tutorialVisible && state.level === 1 && !isPaused ? (
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: -20 }}
+        transition={{ duration: 0.5, delay: 0.3 }}
+        className="absolute bottom-24 right-10 text-white text-center flex flex-col items-center"
+      >
+        <p className="text-xl font-bold mb-2 text-gradient">Start Playing</p>
+        <motion.div
+          animate={{ x: [0, 10, 0] }}
+          transition={{ duration: 1.5, repeat: Infinity }}
+        >
+          <ArrowRight size={32} className="text-white" />
+        </motion.div>
+        <p className="mt-2 text-sm">Move right to begin your journey →</p>
       </motion.div>
     ) : null
   );
@@ -463,11 +485,8 @@ const GameCanvas: React.FC = () => {
         width: '100%',
         height: '100%'
       }}
-      // Add tabIndex to make div focusable for keyboard events
       tabIndex={0}
-      // Focus the container when clicked
       onClick={() => gameContainerRef.current?.focus()}
-      // Focus the container when the game starts
       onFocus={() => console.log("Game container focused")}
     >
       {/* Dynamic background elements based on current element */}
@@ -497,15 +516,16 @@ const GameCanvas: React.FC = () => {
 
       {/* Game elements container - where game objects get positioned */}
       <div className="absolute inset-0">
-        {/* Camera follows player horizontally */}
+        {/* Camera follows player horizontally with custom locking behavior */}
         <div
           className="absolute transition-transform duration-300 ease-out"
           style={{
-            transform: `translateX(${Math.min(
-              Math.max(windowSize.width / 2 - state.player.x, -800 + windowSize.width / 2),
-              0
-            )
-              }px)`
+            transform: cameraLocked 
+              ? `translateX(0px)` // Fixed camera in tutorial start
+              : `translateX(${Math.min(
+                  Math.max(windowSize.width / 2 - state.player.x, -800 + windowSize.width / 2),
+                  0
+                )}px)`
           }}
         >
           {/* Platforms */}
@@ -546,8 +566,9 @@ const GameCanvas: React.FC = () => {
       <AnimatePresence>
         {tutorialVisible && (
           <>
-            <ElementTutorial />
             <ControlsHelper />
+            <ElementTutorial />
+            <StartPlayingPrompt />
           </>
         )}
       </AnimatePresence>
@@ -590,7 +611,7 @@ const GameCanvas: React.FC = () => {
           </button>
           <button
             className="w-16 h-16 rounded-full bg-orange-500/50 backdrop-blur-md flex items-center justify-center shadow-lg border border-white/10"
-            onClick={handleShoot}
+            onClick={() => dispatch({ type: 'PLAYER_SHOOT' })}
           >
             ★
           </button>

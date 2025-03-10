@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGame } from '@/contexts/GameContext';
 import { Play, Info, Volume2, VolumeX, Settings, Flame, Droplet, Leaf, Wind, Ghost } from 'lucide-react';
@@ -8,6 +7,16 @@ const MainMenu: React.FC = () => {
   const { dispatch, elementColors, elementNames } = useGame();
   const [showInfo, setShowInfo] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
+  const [isLoaded, setIsLoaded] = useState(false);
+  
+  // Simulate preloading game assets
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsLoaded(true);
+    }, 500);
+    
+    return () => clearTimeout(timer);
+  }, []);
   
   // Element icons with proper icon components
   const ElementIcon = ({ element, x, y, delay }: { element: string, x: number, y: number, delay: number }) => {
@@ -106,12 +115,10 @@ const MainMenu: React.FC = () => {
   );
   
   const handlePlayGame = () => {
-    console.log("Play button clicked - starting game directly");
-    // Direct dispatch without delay
-    dispatch({ type: 'START_GAME' });
-    
-    // Log after dispatch to confirm
-    console.log("START_GAME action dispatched");
+    // Start game with a slight delay to allow animation
+    setTimeout(() => {
+      dispatch({ type: 'START_GAME' });
+    }, 100);
   };
 
   // Controls info component that appears in main menu
@@ -176,14 +183,17 @@ const MainMenu: React.FC = () => {
         </motion.div>
         
         <div className="flex flex-col gap-4 items-center">
-          {/* Play button */}
-          <button
+          {/* Play button with loading animation */}
+          <motion.button
             className="flex items-center gap-3 px-10 py-4 bg-gradient-to-r from-purple-600 to-blue-600 rounded-full text-xl font-bold shadow-lg hover:shadow-purple-600/40 transition-all"
             onClick={handlePlayGame}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            disabled={!isLoaded}
           >
             <Play size={24} />
-            Play Game
-          </button>
+            {isLoaded ? 'Play Game' : 'Loading...'}
+          </motion.button>
           
           <div className="flex gap-4 mt-6">
             <motion.button
@@ -217,6 +227,7 @@ const MainMenu: React.FC = () => {
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.9 }}
               className="glass-panel p-3 rounded-full"
+              aria-label="Settings"
             >
               <Settings size={24} />
             </motion.button>
@@ -232,7 +243,7 @@ const MainMenu: React.FC = () => {
           transition={{ delay: 0.8 }}
           className="absolute bottom-8 text-sm text-white/60"
         >
-          © 2023 Spirit Shift | Move right to begin your journey
+          © 2025 Spirit Shift | Press Play to begin your journey
         </motion.div>
       </div>
       

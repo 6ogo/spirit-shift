@@ -1,4 +1,3 @@
-
 import React, { useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGame, ElementType } from '@/contexts/GameContext';
@@ -53,67 +52,6 @@ const GameHUD: React.FC = () => {
     );
   };
 
-  // Element Button component
-  const ElementButton: React.FC<{
-    element: ElementType,
-    onClick: () => void,
-    isActive: boolean,
-    position: number
-  }> = ({ element, onClick, isActive, position }) => {
-    // Get the proper icon based on element
-    const getIcon = () => {
-      switch(element) {
-        case 'fire': return <Flame size={16} className="text-white" />;
-        case 'water': return <Droplet size={16} className="text-white" />;
-        case 'earth': return <Leaf size={16} className="text-white" />;
-        case 'air': return <Wind size={16} className="text-white" />;
-        case 'spirit': 
-        default: return <Ghost size={16} className="text-white" />;
-      }
-    };
-
-    return (
-      <motion.button
-        initial={{ scale: 0.8, opacity: 0 }}
-        animate={{ 
-          scale: isActive ? 1.1 : 1, 
-          opacity: 1,
-          y: [0, -5, 0],
-        }}
-        transition={{ 
-          duration: 0.3, 
-          delay: position * 0.1,
-          y: {
-            repeat: isActive ? Infinity : 0,
-            duration: 1.5,
-            repeatType: "reverse"
-          }
-        }}
-        whileHover={{ scale: 1.15 }}
-        whileTap={{ scale: 0.95 }}
-        onClick={onClick}
-        className="relative"
-      >
-        <div 
-          className={`w-12 h-12 rounded-full flex items-center justify-center ${isActive ? 'border-2 border-white' : 'opacity-70'}`}
-          style={{ 
-            backgroundColor: elementColors[element],
-            boxShadow: isActive ? `0 0 12px 5px ${elementColors[element]}` : `0 0 8px 2px ${elementColors[element]}40`
-          }}
-        >
-          {getIcon()}
-        </div>
-        <motion.div
-          initial={{ opacity: 0, y: 5 }}
-          animate={{ opacity: isActive ? 1 : 0.6, y: 0 }}
-          className="absolute -bottom-6 left-1/2 -translate-x-1/2 text-xs font-bold whitespace-nowrap"
-        >
-          {elementNames[element]}
-        </motion.div>
-      </motion.button>
-    );
-  };
-  
   return (
     <div className="absolute inset-x-0 p-4 z-10">
       <div className="max-w-4xl mx-auto flex flex-col space-y-4">
@@ -161,7 +99,7 @@ const GameHUD: React.FC = () => {
         
         {/* Health and energy bars - Positioned at the bottom left */}
         <motion.div 
-          className="fixed bottom-6 left-6 z-50 flex flex-col space-y-3 w-64"
+          className="fixed bottom-6 left-6 z-40 flex flex-col space-y-3 w-64"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
@@ -184,45 +122,6 @@ const GameHUD: React.FC = () => {
             color={elementColors[player.currentElement]}
             animate={true}
             icon={<Battery size={14} className="text-yellow-500" />}
-          />
-        </motion.div>
-        
-        {/* Element selection buttons at the bottom center */}
-        <motion.div 
-          className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex space-x-4 items-end"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-        >
-          <ElementButton 
-            element="fire" 
-            onClick={() => dispatch({ type: 'CHANGE_ELEMENT', payload: 'fire' })}
-            isActive={player.currentElement === 'fire'}
-            position={1}
-          />
-          <ElementButton 
-            element="water" 
-            onClick={() => dispatch({ type: 'CHANGE_ELEMENT', payload: 'water' })}
-            isActive={player.currentElement === 'water'}
-            position={2}
-          />
-          <ElementButton 
-            element="spirit" 
-            onClick={() => dispatch({ type: 'CHANGE_ELEMENT', payload: 'spirit' })}
-            isActive={player.currentElement === 'spirit'}
-            position={0}
-          />
-          <ElementButton 
-            element="earth" 
-            onClick={() => dispatch({ type: 'CHANGE_ELEMENT', payload: 'earth' })}
-            isActive={player.currentElement === 'earth'}
-            position={3}
-          />
-          <ElementButton 
-            element="air" 
-            onClick={() => dispatch({ type: 'CHANGE_ELEMENT', payload: 'air' })}
-            isActive={player.currentElement === 'air'}
-            position={4}
           />
         </motion.div>
         
