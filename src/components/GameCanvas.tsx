@@ -12,17 +12,17 @@ import { Play, Home, RotateCcw } from 'lucide-react';
 const Enemy = ({ enemy }) => {
   const { elementColors } = useGame();
   const elementColor = elementColors[enemy.element];
-  
+
   return (
-    <div 
+    <div
       className="absolute transition-transform"
-      style={{ 
-        left: enemy.x, 
+      style={{
+        left: enemy.x,
         top: enemy.y,
         transform: `translate(-50%, -100%) scaleX(${enemy.direction === 'left' ? -1 : 1})`,
       }}
     >
-      <div 
+      <div
         className="relative rounded-md"
         style={{
           width: enemy.width,
@@ -36,17 +36,17 @@ const Enemy = ({ enemy }) => {
           <div className="w-2 h-2 bg-white rounded-full"></div>
           <div className="w-2 h-2 bg-white rounded-full"></div>
         </div>
-        
+
         {/* Health bar */}
         <div className="absolute -top-4 left-0 right-0 h-1 bg-black/50 rounded-full overflow-hidden">
-          <div 
+          <div
             className="h-full bg-green-500"
             style={{ width: `${(enemy.health / enemy.maxHealth) * 100}%` }}
           />
         </div>
-        
+
         {/* Element indicator */}
-        <div 
+        <div
           className="absolute -top-8 left-1/2 -translate-x-1/2 text-xs bg-black/50 px-1 rounded"
         >
           {enemy.element}
@@ -60,7 +60,7 @@ const Enemy = ({ enemy }) => {
 const Projectile = ({ projectile }) => {
   const { elementColors } = useGame();
   const elementColor = elementColors[projectile.element];
-  
+
   return (
     <motion.div
       className="absolute rounded-full"
@@ -83,21 +83,20 @@ const Projectile = ({ projectile }) => {
 // Element selection UI
 const ElementSelection = () => {
   const { state, dispatch, elementColors, elementNames } = useGame();
-  
+
   return (
     <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-20 flex space-x-4">
       {state.availableElements.map((element) => (
         <button
           key={element}
-          className={`w-12 h-12 rounded-full flex items-center justify-center transition-all ${
-            state.player.currentElement === element 
-              ? 'scale-110 border-2 border-white' 
+          className={`w-12 h-12 rounded-full flex items-center justify-center transition-all ${state.player.currentElement === element
+              ? 'scale-110 border-2 border-white'
               : 'opacity-70'
-          }`}
-          style={{ 
+            }`}
+          style={{
             backgroundColor: elementColors[element],
-            boxShadow: state.player.currentElement === element 
-              ? `0 0 10px 2px ${elementColors[element]}` 
+            boxShadow: state.player.currentElement === element
+              ? `0 0 10px 2px ${elementColors[element]}`
               : 'none'
           }}
           onClick={() => dispatch({ type: 'CHANGE_ELEMENT', payload: element })}
@@ -118,16 +117,17 @@ const GameCanvas: React.FC = () => {
   const { state, dispatch } = useGame();
   const { isPlaying, isPaused } = state;
   const gameContainerRef = useRef<HTMLDivElement>(null);
-  
+  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+
   // Initialize game loop
   useGameLoop();
-  
+
   // Handle window resize for responsiveness
   const [windowSize, setWindowSize] = useState({
     width: window.innerWidth,
     height: window.innerHeight,
   });
-  
+
   useEffect(() => {
     const handleResize = () => {
       setWindowSize({
@@ -135,23 +135,110 @@ const GameCanvas: React.FC = () => {
         height: window.innerHeight,
       });
     };
-    
+
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
-  
+
+  // Mouse tracking for aiming
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (gameContainerRef.current) {
+        const rect = gameContainerRef.current.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+
+        // Update mouse position
+        setMousePosition({ x, y });
+
+        // Calculate direction vector from player to mouse
+        const dirX = x - (windowSize.width / 2); // Assuming player is centered
+        const dirY = y - state.player.y;
+
+        // Update aim direction in game state
+        dispatch({
+          type: 'UPDATE_AIM_DIRECTION',
+          payload: { x: dirX, y: dirY }
+        });
+      }
+    };
+
+    // Mouse click for shooting
+    const handleMouseClick = (e: MouseEvent) => {
+      // Only handle left mouse button (0)
+      if (e.button === 0 && isPlaying && !isPaused) {
+        dispatch({ type: 'PLAYER_SHOOT' });
+      }
+    };
+
+    // Add event listeners
+    if (gameContainerRef.current) {
+      gameContainerRef.current.addEventListener('mousemove', handleMouseMove);
+      gameContainerRef.current.addEventListener('mousedown', handleMouseClick);
+    }
+
+    return () => {
+      if (gameContainerRef.current) {
+        gameContainerRef.current.removeEventListener('mousemove', handleMouseMove);
+        gameContainerRef.current.removeEventListener('mousedown', handleMouseClick);
+      }
+    };
+  }, [isPlaying, isPaused, state.player.x, state.player.y, windowSize]);
+
   // Add shoot button event handler
   const handleShoot = () => {
     dispatch({ type: 'PLAYER_SHOOT' });
   };
-  
+  useEffect(() => {
+    if (!isPlaying || isPaused) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      switch (e.key.toLowerCase()) {
+        case 'w':
+          dispatch({ type: 'PLAYER_JUMP' });
+          break;
+        case 'a':
+          dispatch({ type: 'PLAYER_MOVE_LEFT', payload: true });
+          break;
+        case 'd':
+          dispatch({ type: 'PLAYER_MOVE_RIGHT', payload: true });
+          break;
+        case 's':
+          dispatch({ type: 'PLAYER_DUCK', payload: true });
+          break;
+      }
+    };
+
+    const handleKeyUp = (e: KeyboardEvent) => {
+      switch (e.key.toLowerCase()) {
+        case 'a':
+          dispatch({ type: 'PLAYER_MOVE_LEFT', payload: false });
+          break;
+        case 'd':
+          dispatch({ type: 'PLAYER_MOVE_RIGHT', payload: false });
+          break;
+        case 's':
+          dispatch({ type: 'PLAYER_DUCK', payload: false });
+          break;
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
+    };
+  }, [isPlaying, isPaused, dispatch]);
+
   // Pause screen component
   const PauseScreen = () => (
     isPaused ? (
       <div className="absolute inset-0 flex flex-col items-center justify-center z-20 bg-black/50 backdrop-blur-sm">
         <div className="glass-panel p-8 flex flex-col items-center gap-6 rounded-xl">
           <div className="text-3xl font-bold mb-2 text-gradient">PAUSED</div>
-          
+
           <div className="flex flex-col gap-3">
             <button
               className="flex items-center justify-center gap-2 w-48 px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-full font-bold"
@@ -160,7 +247,7 @@ const GameCanvas: React.FC = () => {
               <Play size={20} />
               RESUME
             </button>
-            
+
             <button
               className="flex items-center justify-center gap-2 w-48 px-6 py-3 bg-white/10 backdrop-blur-md border border-white/20 text-white rounded-full font-bold"
               onClick={() => dispatch({ type: 'RESTART_GAME' })}
@@ -168,7 +255,7 @@ const GameCanvas: React.FC = () => {
               <RotateCcw size={20} />
               RESTART
             </button>
-            
+
             <button
               className="flex items-center justify-center gap-2 w-48 px-6 py-3 bg-white/10 backdrop-blur-md border border-white/20 text-white rounded-full font-bold"
               onClick={() => dispatch({ type: 'END_GAME' })}
@@ -177,7 +264,7 @@ const GameCanvas: React.FC = () => {
               MAIN MENU
             </button>
           </div>
-          
+
           <div className="mt-4 text-sm text-white/60">
             Press ESC to resume
           </div>
@@ -185,7 +272,7 @@ const GameCanvas: React.FC = () => {
       </div>
     ) : null
   );
-  
+
   // Game Over screen component
   const GameOverScreen = () => (
     state.gameOver ? (
@@ -193,7 +280,7 @@ const GameCanvas: React.FC = () => {
         <div className="glass-panel p-8 flex flex-col items-center gap-6 rounded-xl">
           <div className="text-3xl font-bold mb-2 text-red-500">GAME OVER</div>
           <div className="text-xl mb-4">Score: {state.score}</div>
-          
+
           <div className="flex flex-col gap-3">
             <button
               className="flex items-center justify-center gap-2 w-48 px-6 py-3 bg-gradient-to-r from-red-600 to-purple-600 text-white rounded-full font-bold"
@@ -202,7 +289,7 @@ const GameCanvas: React.FC = () => {
               <RotateCcw size={20} />
               TRY AGAIN
             </button>
-            
+
             <button
               className="flex items-center justify-center gap-2 w-48 px-6 py-3 bg-white/10 backdrop-blur-md border border-white/20 text-white rounded-full font-bold"
               onClick={() => dispatch({ type: 'END_GAME' })}
@@ -215,7 +302,7 @@ const GameCanvas: React.FC = () => {
       </div>
     ) : null
   );
-  
+
   // Controls helper component that shows key instructions
   const ControlsHelper = () => (
     isPlaying && !isPaused ? (
@@ -233,7 +320,7 @@ const GameCanvas: React.FC = () => {
       </div>
     ) : null
   );
-  
+
   // Element tutorial shown at start
   const ElementTutorial = () => (
     state.level === 1 && !isPaused ? (
@@ -250,9 +337,9 @@ const GameCanvas: React.FC = () => {
       </div>
     ) : null
   );
-  
+
   return (
-    <div 
+    <div
       ref={gameContainerRef}
       className="game-container relative overflow-hidden bg-gradient-to-b from-gray-900 via-gray-800 to-black"
       style={{
@@ -261,14 +348,14 @@ const GameCanvas: React.FC = () => {
       }}
     >
       {/* Dynamic background elements based on current element */}
-      <div 
+      <div
         className="absolute inset-0 opacity-20"
         style={{
           backgroundSize: '10px 10px',
           backgroundImage: 'radial-gradient(circle, white 1px, transparent 1px)',
         }}
       ></div>
-      
+
       {/* Element-specific ambient effects */}
       <div className="absolute inset-0 pointer-events-none">
         {state.player.currentElement === 'fire' && (
@@ -284,19 +371,18 @@ const GameCanvas: React.FC = () => {
           <div className="absolute inset-0 bg-gradient-to-t from-purple-900/30 to-transparent"></div>
         )}
       </div>
-      
+
       {/* Game elements container - where game objects get positioned */}
       <div className="absolute inset-0">
         {/* Camera follows player horizontally */}
-        <div 
+        <div
           className="absolute transition-transform duration-300 ease-out"
-          style={{ 
-            transform: `translateX(${
-              Math.min(
-                Math.max(windowSize.width / 2 - state.player.x, -800 + windowSize.width / 2),
-                0
-              )
-            }px)` 
+          style={{
+            transform: `translateX(${Math.min(
+              Math.max(windowSize.width / 2 - state.player.x, -800 + windowSize.width / 2),
+              0
+            )
+              }px)`
           }}
         >
           {/* Platforms */}
@@ -311,7 +397,7 @@ const GameCanvas: React.FC = () => {
               canPassThrough={platform.canPassThrough}
             />
           ))}
-          
+
           {/* Spirits for selection (only show on the first level) */}
           {state.level === 1 && (
             <div className="absolute top-100 left-120 flex space-x-20 items-center">
@@ -325,22 +411,22 @@ const GameCanvas: React.FC = () => {
               ))}
             </div>
           )}
-          
+
           {/* Enemies */}
           {state.enemies.map((enemy) => (
             <Enemy key={`enemy-${enemy.id}`} enemy={enemy} />
           ))}
-          
+
           {/* Projectiles */}
           {state.projectiles.map((projectile) => (
             <Projectile key={`projectile-${projectile.id}`} projectile={projectile} />
           ))}
-          
+
           {/* Player */}
           <Player />
         </div>
       </div>
-      
+
       {/* Game UI layers */}
       <GameHUD />
       <ElementSelection />
@@ -348,7 +434,7 @@ const GameCanvas: React.FC = () => {
       <ControlsHelper />
       <PauseScreen />
       <GameOverScreen />
-      
+
       {/* Mobile controls overlay (for touch devices) */}
       <div className="md:hidden absolute bottom-20 left-4 right-4 z-30 flex justify-between">
         <div className="flex gap-2">
@@ -367,7 +453,7 @@ const GameCanvas: React.FC = () => {
             →
           </button>
         </div>
-        
+
         <div className="flex gap-2">
           <button
             className="w-16 h-16 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center shadow-lg border border-white/10"
