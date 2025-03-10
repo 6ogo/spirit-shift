@@ -110,9 +110,7 @@ type GameAction =
   | { type: 'ADD_ENEMY', payload: Enemy }
   | { type: 'UPDATE_ENEMY', payload: Enemy }  // Added for updating individual enemies
   | { type: 'DAMAGE_ENEMY', payload: { id: number, damage: number } }
-  | { type: 'REMOVE_ENEMY', payload: number }
-  | { type: 'UPDATE_PROJECTILES' }
-  | { type: 'REMOVE_PROJECTILE', payload: number };
+  | { type: 'REMOVE_ENEMY', payload: number };
 
 // Initial state
 const initialPlayerState: PlayerState = {
@@ -140,7 +138,7 @@ const initialPlayerState: PlayerState = {
   facingDirection: 'right',
 };
 
-// Helper function to generate tutorial level with no platforms except floor
+// Helper function to generate tutorial level with only floor platform (no enemies)
 const generateTutorialLevel = (): Platform[] => {
   return [
     { x: 0, y: 500, width: 2000, height: 30, element: 'spirit', canPassThrough: false },
@@ -159,7 +157,7 @@ const generatePlatforms = (level: number, seed: number): Platform[] => {
     { x: 0, y: 500, width: 2000, height: 30, element: 'spirit', canPassThrough: false },
   ];
 
-  // Skip adding other platforms for level 1 (tutorial)
+  // Skip adding other platforms for tutorial level
   if (level === 1) {
     return platforms;
   }
@@ -468,14 +466,14 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
         },
       };
     case 'UPDATE_AIM_DIRECTION': {
-      const facingDirection = action.payload.x >= 0 ? 'right' : 'left';
+      // Fix the aim direction to use the correct facing direction
       return {
         ...state,
         player: {
           ...state.player,
           aimDirectionX: action.payload.x,
           aimDirectionY: action.payload.y,
-          facingDirection: facingDirection
+          facingDirection: action.payload.x >= 0 ? 'right' : 'left'
         }
       };
     }
@@ -516,7 +514,7 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
           break;
       }
 
-      // FIX: Calculate proper aim direction for projectiles
+      // Calculate proper aim direction for projectiles
       const aimLength = Math.sqrt(
         state.player.aimDirectionX * state.player.aimDirectionX +
         state.player.aimDirectionY * state.player.aimDirectionY
@@ -661,15 +659,12 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
         projectiles: state.projectiles.filter(p => p.id !== action.payload)
       };
     case 'CHANGE_ELEMENT': {
-      let scoreBonus = state.player.currentElement !== action.payload ? 5 : 0;
+      // Don't add score when changing elements
       return {
         ...state,
-        score: state.score + scoreBonus,
         player: {
           ...state.player,
           currentElement: action.payload,
-          health: state.player.health,
-          energy: state.player.energy
         },
       };
     }
@@ -694,7 +689,7 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
       };
     }
     case 'UPDATE_ENEMY': {
-      // FIX: New reducer case to update a single enemy
+      // Fixed: Now properly types the enemy.direction as 'left' | 'right'
       const updatedEnemies = state.enemies.map(enemy => 
         enemy.id === action.payload.id ? action.payload : enemy
       );
@@ -862,7 +857,6 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         case 'Escape':
           dispatch({ type: 'PAUSE_GAME' });
           break;
-        case ' ':
         case 'f':
         case 'F':
           dispatch({ type: 'PLAYER_SHOOT' });

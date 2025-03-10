@@ -25,7 +25,7 @@ const MainMenu: React.FC = () => {
     
     return (
       <motion.div
-        className="absolute"
+        className="absolute cursor-pointer"
         style={{ left: `${x}%`, top: `${y}%` }}
         animate={{
           y: [0, -15, 0],
@@ -37,6 +37,9 @@ const MainMenu: React.FC = () => {
           delay: delay,
           ease: "easeInOut"
         }}
+        whileHover={{ scale: 1.15 }}
+        whileTap={{ scale: 0.9 }}
+        onClick={() => dispatch({ type: 'CHANGE_ELEMENT', payload: element as any })}
       >
         <div 
           className="w-12 h-12 rounded-full flex items-center justify-center"
@@ -144,12 +147,12 @@ const MainMenu: React.FC = () => {
         />
       </div>
       
-      {/* Floating element icons with proper element icons */}
+      {/* Floating element icons with proper element icons - Fire, Water, Spirit (center), Earth, Air */}
       <ElementIcon element="fire" x={15} y={30} delay={0} />
       <ElementIcon element="water" x={85} y={40} delay={0.5} />
+      <ElementIcon element="spirit" x={50} y={30} delay={0.75} /> {/* Spirit in the middle at top */}
       <ElementIcon element="earth" x={30} y={70} delay={1} />
       <ElementIcon element="air" x={70} y={20} delay={1.5} />
-      <ElementIcon element="spirit" x={50} y={50} delay={0.75} /> {/* Spirit in the middle */}
       
       {/* Game title and menu */}
       <div className="relative z-10 flex flex-col items-center justify-center h-full">

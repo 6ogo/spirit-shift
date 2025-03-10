@@ -104,11 +104,11 @@ export const useGameLoop = ({ fps = 60 }: GameLoopProps = {}) => {
   }
 
   const updateGameState = (deltaTime: number) => {
-    // Debug movement speed
-    console.log("Delta time:", deltaTime, "Movement speed:", state.player.velocityX * deltaTime * 60);
-
+    // Cap delta time to prevent huge jumps on tab switch or slow devices
+    const cappedDelta = Math.min(deltaTime, 0.1);
+    
     // Gravity effect - adjusted for deltaTime
-    const gravity = 0.8 * 60 * deltaTime;
+    const gravity = 0.8 * 60 * cappedDelta;
 
     // Update player position
     let playerX = state.player.x;
@@ -122,32 +122,24 @@ export const useGameLoop = ({ fps = 60 }: GameLoopProps = {}) => {
     if (state.player.isMovingLeft) {
       // Apply a consistent movement speed when moving left
       velocityX = state.player.isDucking ? -3 : -5;
-      console.log("Moving left with velocity:", velocityX);
     } else if (state.player.isMovingRight) {
       // Apply a consistent movement speed when moving right
       velocityX = state.player.isDucking ? 3 : 5;
-      console.log("Moving right with velocity:", velocityX);
     } else {
       // When not moving, ensure velocity is zero
       velocityX = 0;
     }
 
-    // Apply horizontal movement - this is a critical fix for actual movement
-    playerX += velocityX * 60 * deltaTime;
+    // Apply horizontal movement - properly scaled by delta time
+    playerX += velocityX * 60 * cappedDelta;
     
-    // Log position changes for debugging
-    console.log("Player position updated:", { oldX: state.player.x, newX: playerX, velocityX });
-
-    // Update last position reference
-    lastPositionRef.current = { x: playerX, y: playerY };
-
     // Ensure player doesn't go off-screen horizontally
     playerX = Math.max(playerWidth / 2, Math.min(1600 - playerWidth / 2, playerX));
 
     // Apply gravity if the player is jumping or not on a platform
     if (state.player.isJumping || !state.player.onPlatform) {
       velocityY += gravity;
-      playerY += velocityY * deltaTime * 60;
+      playerY += velocityY * cappedDelta * 60;
 
       // Check if player landed on any platform
       let landed = false;
@@ -313,13 +305,11 @@ export const useGameLoop = ({ fps = 60 }: GameLoopProps = {}) => {
 
       // Only move if within a certain range (enemy sight)
       if (distanceToPlayer < 400) {
-        console.log("Enemy in range, distance:", distanceToPlayer);
-        
-        // Determine direction to player - Fixed: Use proper type for direction
+        // Determine direction to player - Fixed with proper type
         const directionToPlayer: 'left' | 'right' = enemy.x < state.player.x ? 'right' : 'left';
 
         // Calculate new x position
-        let moveSpeed = enemy.speed * deltaTime * 60;
+        let moveSpeed = enemy.speed * cappedDelta * 60;
         const newX = directionToPlayer === 'right' ?
           enemy.x + moveSpeed :
           enemy.x - moveSpeed;
