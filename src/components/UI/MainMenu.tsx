@@ -1,38 +1,55 @@
+
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGame } from '@/contexts/GameContext';
-import { Play, Info, Volume2, VolumeX, Settings } from 'lucide-react';
+import { Play, Info, Volume2, VolumeX, Settings, Flame, Droplet, Leaf, Wind, Ghost } from 'lucide-react';
 
 const MainMenu: React.FC = () => {
-  const { dispatch, elementColors } = useGame();
+  const { dispatch, elementColors, elementNames } = useGame();
   const [showInfo, setShowInfo] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   
-  // Element icons that float in the background
-  const ElementIcon = ({ element, x, y, delay }: { element: string, x: number, y: number, delay: number }) => (
-    <motion.div
-      className="absolute"
-      style={{ left: `${x}%`, top: `${y}%` }}
-      animate={{
-        y: [0, -15, 0],
-        opacity: [0.6, 0.9, 0.6],
-      }}
-      transition={{
-        repeat: Infinity,
-        duration: 3,
-        delay: delay,
-        ease: "easeInOut"
-      }}
-    >
-      <div 
-        className="w-12 h-12 rounded-full"
-        style={{ 
-          backgroundColor: elementColors[element as any],
-          boxShadow: `0 0 15px 5px ${elementColors[element as any]}40` 
+  // Element icons with proper icon components
+  const ElementIcon = ({ element, x, y, delay }: { element: string, x: number, y: number, delay: number }) => {
+    // Get the proper icon based on element
+    const getIcon = () => {
+      switch(element) {
+        case 'fire': return <Flame size={24} className="text-white" />;
+        case 'water': return <Droplet size={24} className="text-white" />;
+        case 'earth': return <Leaf size={24} className="text-white" />;
+        case 'air': return <Wind size={24} className="text-white" />;
+        case 'spirit': 
+        default: return <Ghost size={24} className="text-white" />;
+      }
+    };
+    
+    return (
+      <motion.div
+        className="absolute"
+        style={{ left: `${x}%`, top: `${y}%` }}
+        animate={{
+          y: [0, -15, 0],
+          opacity: [0.6, 0.9, 0.6],
         }}
-      />
-    </motion.div>
-  );
+        transition={{
+          repeat: Infinity,
+          duration: 3,
+          delay: delay,
+          ease: "easeInOut"
+        }}
+      >
+        <div 
+          className="w-12 h-12 rounded-full flex items-center justify-center"
+          style={{ 
+            backgroundColor: elementColors[element as any],
+            boxShadow: `0 0 15px 5px ${elementColors[element as any]}40` 
+          }}
+        >
+          {getIcon()}
+        </div>
+      </motion.div>
+    );
+  };
 
   const GameInfo = () => (
     <motion.div
@@ -93,6 +110,27 @@ const MainMenu: React.FC = () => {
     // Log after dispatch to confirm
     console.log("START_GAME action dispatched");
   };
+
+  // Controls info component that appears in main menu
+  const ControlsInfo = () => (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.7 }}
+      className="absolute bottom-32 left-1/2 -translate-x-1/2 glass-panel p-4 rounded-lg max-w-md text-white/90 text-sm border border-white/10"
+    >
+      <h3 className="font-bold text-center mb-2">Controls</h3>
+      <div className="grid grid-cols-2 gap-x-6 gap-y-1">
+        <div>W / Space / ↑</div><div>Jump</div>
+        <div>A / ←</div><div>Move Left</div>
+        <div>D / →</div><div>Move Right</div>
+        <div>S / ↓</div><div>Duck</div>
+        <div>F / Left Click</div><div>Shoot</div>
+        <div>1-5</div><div>Change Element</div>
+        <div>ESC</div><div>Pause</div>
+      </div>
+    </motion.div>
+  );
   
   return (
     <div className="relative w-full h-screen overflow-hidden">
@@ -106,11 +144,12 @@ const MainMenu: React.FC = () => {
         />
       </div>
       
-      {/* Floating element icons */}
+      {/* Floating element icons with proper element icons */}
       <ElementIcon element="fire" x={15} y={30} delay={0} />
       <ElementIcon element="water" x={85} y={40} delay={0.5} />
       <ElementIcon element="earth" x={30} y={70} delay={1} />
       <ElementIcon element="air" x={70} y={20} delay={1.5} />
+      <ElementIcon element="spirit" x={50} y={50} delay={0.75} /> {/* Spirit in the middle */}
       
       {/* Game title and menu */}
       <div className="relative z-10 flex flex-col items-center justify-center h-full">
@@ -134,7 +173,7 @@ const MainMenu: React.FC = () => {
         </motion.div>
         
         <div className="flex flex-col gap-4 items-center">
-          {/* Simplified play button without complex animations */}
+          {/* Play button */}
           <button
             className="flex items-center gap-3 px-10 py-4 bg-gradient-to-r from-purple-600 to-blue-600 rounded-full text-xl font-bold shadow-lg hover:shadow-purple-600/40 transition-all"
             onClick={handlePlayGame}
@@ -181,13 +220,16 @@ const MainMenu: React.FC = () => {
           </div>
         </div>
         
+        {/* Controls info in main menu */}
+        <ControlsInfo />
+        
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.8 }}
           className="absolute bottom-8 text-sm text-white/60"
         >
-          © 2023 Spirit Shift | Use arrow keys or WASD to move | Space to jump | 1-5 to change spirits
+          © 2023 Spirit Shift | Move right to begin your journey
         </motion.div>
       </div>
       

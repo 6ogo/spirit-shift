@@ -118,8 +118,7 @@ export const useGameLoop = ({ fps = 60 }: GameLoopProps = {}) => {
     let playerWidth = state.player.width;
     let playerHeight = state.player.height;
 
-    // FIX: Apply movement based on player's movement state flags
-    // This ensures the character actually moves when keys are pressed
+    // Apply movement based on player's movement state flags
     if (state.player.isMovingLeft) {
       // Apply a consistent movement speed when moving left
       velocityX = state.player.isDucking ? -3 : -5;
@@ -133,7 +132,7 @@ export const useGameLoop = ({ fps = 60 }: GameLoopProps = {}) => {
       velocityX = 0;
     }
 
-    // Apply horizontal movement
+    // Apply horizontal movement - this is a critical fix for actual movement
     playerX += velocityX * 60 * deltaTime;
     
     // Log position changes for debugging
@@ -211,7 +210,7 @@ export const useGameLoop = ({ fps = 60 }: GameLoopProps = {}) => {
         }
       }
     } else {
-      // Even when not jumping, update X position for smoother movement
+      // Explicitly update X position for movement even when on platform
       dispatch({
         type: 'PLAYER_MOVE',
         payload: {
@@ -302,13 +301,13 @@ export const useGameLoop = ({ fps = 60 }: GameLoopProps = {}) => {
       });
     }
     
-    // FIX: Update projectiles with proper direction and movement
+    // Update projectiles with proper direction and movement
     if (state.projectiles.length > 0) {
       dispatch({ type: 'UPDATE_PROJECTILES' });
     }
     
-    // FIX: Enemy movement logic - ensure enemies actually move
-    state.enemies.forEach((enemy, index) => {
+    // Fix enemy movement logic to ensure enemies actually move
+    state.enemies.forEach((enemy) => {
       // Calculate distance to player
       const distanceToPlayer = Math.abs(enemy.x - state.player.x);
 
@@ -365,14 +364,14 @@ export const useGameLoop = ({ fps = 60 }: GameLoopProps = {}) => {
         }
 
         if (canMove && !wouldFall) {
-          // FIX: Create updated enemy with proper position and direction
+          // Create updated enemy with proper position and direction
           const updatedEnemy = {
             ...enemy,
             x: newX,
             direction: directionToPlayer
           };
           
-          // FIX: Dispatch to update enemy state
+          // Dispatch to update enemy state
           dispatch({
             type: 'UPDATE_ENEMY',
             payload: updatedEnemy
@@ -401,4 +400,3 @@ export const useGameLoop = ({ fps = 60 }: GameLoopProps = {}) => {
 
   return { state };
 };
-

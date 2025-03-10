@@ -2,14 +2,12 @@
 import React, { useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGame, ElementType } from '@/contexts/GameContext';
+import { Heart, Battery } from 'lucide-react';
 
 const GameHUD: React.FC = () => {
   const { state, dispatch, elementColors, elementNames } = useGame();
   const { player, score } = state;
   
-  // Element selection icons have been moved to the GameCanvas component
-  // to ensure they're properly positioned at the bottom
-
   // Progress bar component
   const ProgressBar: React.FC<{ 
     value: number, 
@@ -17,8 +15,9 @@ const GameHUD: React.FC = () => {
     label: string, 
     color: string,
     className?: string,
-    animate?: boolean
-  }> = ({ value, maxValue, label, color, className = "", animate = true }) => {
+    animate?: boolean,
+    icon?: React.ReactNode
+  }> = ({ value, maxValue, label, color, className = "", animate = true, icon }) => {
     const percentage = (value / maxValue) * 100;
     
     return (
@@ -28,7 +27,10 @@ const GameHUD: React.FC = () => {
         className={`glass-panel p-2 flex-1 ${className}`}
       >
         <div className="flex justify-between items-center mb-1">
-          <div className="text-xs text-white/80">{label}</div>
+          <div className="flex items-center gap-1.5 text-xs text-white/80">
+            {icon}
+            <span>{label}</span>
+          </div>
           <div className="text-xs font-bold">{Math.round(value)}/{maxValue}</div>
         </div>
         <div className="h-2 bg-black/50 rounded-full overflow-hidden">
@@ -96,8 +98,13 @@ const GameHUD: React.FC = () => {
           </motion.div>
         </div>
         
-        {/* Health and energy bars */}
-        <div className="flex space-x-4">
+        {/* Health and energy bars - now always visible and positioned to the left of spirit circles at the bottom */}
+        <motion.div 
+          className="fixed bottom-24 left-10 z-50 flex flex-col space-y-3 w-64"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+        >
           {/* Health bar */}
           <ProgressBar 
             value={player.health} 
@@ -105,6 +112,7 @@ const GameHUD: React.FC = () => {
             label="Health" 
             color="#FF5555"
             animate={false}
+            icon={<Heart size={14} className="text-red-500" />}
           />
           
           {/* Energy bar */}
@@ -114,8 +122,9 @@ const GameHUD: React.FC = () => {
             label="Energy" 
             color={elementColors[player.currentElement]}
             animate={true}
+            icon={<Battery size={14} className="text-yellow-500" />}
           />
-        </div>
+        </motion.div>
         
         {/* Element power description */}
         <AnimatePresence mode="wait">

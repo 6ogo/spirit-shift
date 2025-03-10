@@ -7,7 +7,7 @@ import Player from './Player';
 import Platform from './Platform';
 import Spirit from './Spirit';
 import GameHUD from './UI/GameHUD';
-import { Play, Home, RotateCcw } from 'lucide-react';
+import { Play, Home, RotateCcw, Flame, Droplet, Leaf, Wind, Ghost } from 'lucide-react';
 
 // Enemy component
 const Enemy = ({ enemy }) => {
@@ -81,7 +81,24 @@ const Projectile = ({ projectile }) => {
   );
 };
 
-// FIX: Updated Element selection UI to appear at the bottom and improve clickability
+// Get element icon component
+const getElementIcon = (element) => {
+  switch(element) {
+    case 'fire':
+      return <Flame size={20} className="text-white" />;
+    case 'water':
+      return <Droplet size={20} className="text-white" />;
+    case 'earth':
+      return <Leaf size={20} className="text-white" />;
+    case 'air':
+      return <Wind size={20} className="text-white" />;
+    case 'spirit':
+    default:
+      return <Ghost size={20} className="text-white" />;
+  }
+};
+
+// Updated Element selection UI to appear at the bottom with proper icons
 const ElementSelection = () => {
   const { state, dispatch, elementColors, elementNames } = useGame();
 
@@ -106,9 +123,7 @@ const ElementSelection = () => {
             dispatch({ type: 'CHANGE_ELEMENT', payload: element });
           }}
         >
-          <span className="text-lg font-bold text-white">
-            {elementNames[element].charAt(0)}
-          </span>
+          {getElementIcon(element)}
           <div className="absolute -bottom-6 text-sm whitespace-nowrap text-center text-white pointer-events-none">
             {elementNames[element]}
           </div>
@@ -166,7 +181,7 @@ const GameCanvas: React.FC = () => {
         // Update mouse position
         setMousePosition({ x, y });
 
-        // FIX: Calculate direction vector from player to mouse
+        // Calculate direction vector from player to mouse
         // Account for camera offset to get accurate aiming
         const cameraOffsetX = Math.min(
           Math.max(windowSize.width / 2 - state.player.x, -800 + windowSize.width / 2),
@@ -175,10 +190,11 @@ const GameCanvas: React.FC = () => {
         
         // Get the actual player position on screen
         const playerScreenX = state.player.x + cameraOffsetX;
+        const playerScreenY = state.player.y - state.player.height / 2;
         
         // Calculate aim direction from player position to mouse
         const dirX = x - playerScreenX;
-        const dirY = y - state.player.y;
+        const dirY = y - playerScreenY;
 
         // Update aim direction in game state
         dispatch({
@@ -215,7 +231,7 @@ const GameCanvas: React.FC = () => {
     dispatch({ type: 'PLAYER_SHOOT' });
   };
 
-  // Fixed keyboard event handling - with debug logs and improved event handling
+  // Keyboard event handling 
   useEffect(() => {
     if (!isPlaying || isPaused) return;
 
@@ -421,7 +437,7 @@ const GameCanvas: React.FC = () => {
     ) : null
   );
 
-  // FIX: Render spirits at the bottom in the tutorial level
+  // Render spirits at the bottom in the tutorial level
   const renderTutorialSpirits = () => {
     if (!isTutorialLevel) return null;
     
