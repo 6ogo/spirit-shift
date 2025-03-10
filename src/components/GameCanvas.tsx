@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { motion } from 'framer-motion';
 import { useGame } from '@/contexts/GameContext';
 import { useGameLoop } from '@/hooks/useGameLoop';
 import Player from './Player';
@@ -7,24 +8,119 @@ import Spirit from './Spirit';
 import GameHUD from './UI/GameHUD';
 import { Play, Home, RotateCcw } from 'lucide-react';
 
+// Enemy component
+const Enemy = ({ enemy }) => {
+  const { elementColors } = useGame();
+  const elementColor = elementColors[enemy.element];
+  
+  return (
+    <div 
+      className="absolute transition-transform"
+      style={{ 
+        left: enemy.x, 
+        top: enemy.y,
+        transform: `translate(-50%, -100%) scaleX(${enemy.direction === 'left' ? -1 : 1})`,
+      }}
+    >
+      <div 
+        className="relative rounded-md"
+        style={{
+          width: enemy.width,
+          height: enemy.height,
+          backgroundColor: elementColor,
+          boxShadow: `0 0 10px ${elementColor}80`,
+        }}
+      >
+        {/* Enemy eyes - gives them character */}
+        <div className="absolute top-1/4 left-0 right-0 flex justify-center space-x-2 pointer-events-none">
+          <div className="w-2 h-2 bg-white rounded-full"></div>
+          <div className="w-2 h-2 bg-white rounded-full"></div>
+        </div>
+        
+        {/* Health bar */}
+        <div className="absolute -top-4 left-0 right-0 h-1 bg-black/50 rounded-full overflow-hidden">
+          <div 
+            className="h-full bg-green-500"
+            style={{ width: `${(enemy.health / enemy.maxHealth) * 100}%` }}
+          />
+        </div>
+        
+        {/* Element indicator */}
+        <div 
+          className="absolute -top-8 left-1/2 -translate-x-1/2 text-xs bg-black/50 px-1 rounded"
+        >
+          {enemy.element}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Projectile component
+const Projectile = ({ projectile }) => {
+  const { elementColors } = useGame();
+  const elementColor = elementColors[projectile.element];
+  
+  return (
+    <motion.div
+      className="absolute rounded-full"
+      style={{
+        left: projectile.x,
+        top: projectile.y,
+        width: projectile.width,
+        height: projectile.height,
+        backgroundColor: elementColor,
+        boxShadow: `0 0 8px ${elementColor}`,
+        transform: 'translate(-50%, -50%)',
+      }}
+      initial={{ opacity: 0, scale: 0.5 }}
+      animate={{ opacity: 1, scale: 1 }}
+      exit={{ opacity: 0, scale: 0.5 }}
+    />
+  );
+};
+
+// Element selection UI
+const ElementSelection = () => {
+  const { state, dispatch, elementColors, elementNames } = useGame();
+  
+  return (
+    <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-20 flex space-x-4">
+      {state.availableElements.map((element) => (
+        <button
+          key={element}
+          className={`w-12 h-12 rounded-full flex items-center justify-center transition-all ${
+            state.player.currentElement === element 
+              ? 'scale-110 border-2 border-white' 
+              : 'opacity-70'
+          }`}
+          style={{ 
+            backgroundColor: elementColors[element],
+            boxShadow: state.player.currentElement === element 
+              ? `0 0 10px 2px ${elementColors[element]}` 
+              : 'none'
+          }}
+          onClick={() => dispatch({ type: 'CHANGE_ELEMENT', payload: element })}
+        >
+          <span className="text-sm font-bold text-white">
+            {elementNames[element].charAt(0)}
+          </span>
+          <div className="absolute -bottom-5 text-xs whitespace-nowrap text-center text-white">
+            {elementNames[element]}
+          </div>
+        </button>
+      ))}
+    </div>
+  );
+};
+
 const GameCanvas: React.FC = () => {
   const { state, dispatch } = useGame();
   const { isPlaying, isPaused } = state;
   const gameContainerRef = useRef<HTMLDivElement>(null);
   
-  // Debug mode for troubleshooting
-  const [debug, setDebug] = useState(false);
-  
   // Initialize game loop
   useGameLoop();
-  
-  // Spirits (would be procedurally placed in a full game)
-  const spirits = [
-    { x: 300, y: 200, element: 'fire' as const },
-    { x: 500, y: 150, element: 'water' as const },
-    { x: 700, y: 200, element: 'earth' as const },
-    { x: 900, y: 130, element: 'air' as const },
-  ];
   
   // Handle window resize for responsiveness
   const [windowSize, setWindowSize] = useState({
@@ -44,44 +140,12 @@ const GameCanvas: React.FC = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
   
-  // Log component mounting for debugging
-  useEffect(() => {
-    console.log("GameCanvas component mounted");
-    
-    // Explicit testing of DOM presence
-    if (gameContainerRef.current) {
-      console.log("GameContainer ref is connected to DOM");
-    } else {
-      console.error("GameContainer ref is NOT connected to DOM");
-    }
-    
-    return () => {
-      console.log("GameCanvas component unmounted");
-    };
-  }, []);
+  // Add shoot button event handler
+  const handleShoot = () => {
+    dispatch({ type: 'PLAYER_SHOOT' });
+  };
   
-  // Handle keyboard shortcuts
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Debug mode toggle
-      if (e.key === 'F2') {
-        setDebug(prev => !prev);
-        console.log("Debug mode:", !debug);
-      }
-      
-      // Pause handling
-      if (isPaused && e.key === 'Escape') {
-        dispatch({ type: 'RESUME_GAME' });
-      } else if (isPlaying && !isPaused && e.key === 'Escape') {
-        dispatch({ type: 'PAUSE_GAME' });
-      }
-    };
-    
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isPlaying, isPaused, dispatch, debug]);
-  
-  // Pause screen component with simplified rendering
+  // Pause screen component
   const PauseScreen = () => (
     isPaused ? (
       <div className="absolute inset-0 flex flex-col items-center justify-center z-20 bg-black/50 backdrop-blur-sm">
@@ -122,7 +186,7 @@ const GameCanvas: React.FC = () => {
     ) : null
   );
   
-  // Game Over screen component with simplified rendering
+  // Game Over screen component
   const GameOverScreen = () => (
     state.gameOver ? (
       <div className="absolute inset-0 flex flex-col items-center justify-center z-20 bg-black/60 backdrop-blur-sm">
@@ -152,22 +216,7 @@ const GameCanvas: React.FC = () => {
     ) : null
   );
   
-  // Debug overlay
-  const DebugOverlay = () => (
-    debug ? (
-      <div className="absolute top-20 left-4 bg-black/70 p-2 rounded text-xs text-white z-50">
-        <div>Player X: {state.player.x.toFixed(2)}</div>
-        <div>Player Y: {state.player.y.toFixed(2)}</div>
-        <div>Velocity X: {state.player.velocityX.toFixed(2)}</div>
-        <div>Velocity Y: {state.player.velocityY.toFixed(2)}</div>
-        <div>Is Jumping: {String(state.player.isJumping)}</div>
-        <div>Is On Platform: {String(state.player.onPlatform)}</div>
-        <div>Element: {state.player.currentElement}</div>
-      </div>
-    ) : null
-  );
-  
-  // Controls helper with simplified rendering
+  // Controls helper component that shows key instructions
   const ControlsHelper = () => (
     isPlaying && !isPaused ? (
       <div className="absolute top-4 right-4 text-white text-sm bg-black/50 p-3 rounded-md backdrop-blur-sm z-10 border border-white/10">
@@ -178,9 +227,26 @@ const GameCanvas: React.FC = () => {
           <div>D / →</div><div>Move Right</div>
           <div>S / ↓</div><div>Duck</div>
           <div>1-5</div><div>Change Element</div>
+          <div>F / Space</div><div>Shoot</div>
           <div>ESC</div><div>Pause</div>
-          <div>F2</div><div>Debug</div>
         </div>
+      </div>
+    ) : null
+  );
+  
+  // Element tutorial shown at start
+  const ElementTutorial = () => (
+    state.level === 1 && !isPaused ? (
+      <div className="absolute bottom-20 left-1/2 -translate-x-1/2 text-white text-center z-10 p-3 bg-black/50 rounded-md backdrop-blur-sm max-w-lg">
+        <h3 className="font-bold mb-2">Element Powers</h3>
+        <p className="mb-2">Each element has unique abilities and strengths against enemies:</p>
+        <div className="grid grid-cols-2 gap-2 text-xs">
+          <div className="text-left"><span className="font-bold text-red-400">Fire:</span> Strong against Air, weak to Water</div>
+          <div className="text-left"><span className="font-bold text-blue-400">Water:</span> Strong against Fire, weak to Earth</div>
+          <div className="text-left"><span className="font-bold text-green-400">Earth:</span> Strong against Water, weak to Air</div>
+          <div className="text-left"><span className="font-bold text-purple-400">Air:</span> Strong against Earth, weak to Fire</div>
+        </div>
+        <p className="mt-2 text-xs opacity-70">Press the buttons below or number keys 1-5 to switch elements</p>
       </div>
     ) : null
   );
@@ -194,115 +260,134 @@ const GameCanvas: React.FC = () => {
         height: '100%'
       }}
     >
-      {/* Main content of game */}
+      {/* Dynamic background elements based on current element */}
+      <div 
+        className="absolute inset-0 opacity-20"
+        style={{
+          backgroundSize: '10px 10px',
+          backgroundImage: 'radial-gradient(circle, white 1px, transparent 1px)',
+        }}
+      ></div>
+      
+      {/* Element-specific ambient effects */}
+      <div className="absolute inset-0 pointer-events-none">
+        {state.player.currentElement === 'fire' && (
+          <div className="absolute inset-0 bg-gradient-to-t from-red-900/30 to-transparent"></div>
+        )}
+        {state.player.currentElement === 'water' && (
+          <div className="absolute inset-0 bg-gradient-to-t from-blue-900/30 to-transparent"></div>
+        )}
+        {state.player.currentElement === 'earth' && (
+          <div className="absolute inset-0 bg-gradient-to-t from-green-900/30 to-transparent"></div>
+        )}
+        {state.player.currentElement === 'air' && (
+          <div className="absolute inset-0 bg-gradient-to-t from-purple-900/30 to-transparent"></div>
+        )}
+      </div>
+      
+      {/* Game elements container - where game objects get positioned */}
       <div className="absolute inset-0">
-        {/* Dynamic background elements based on current element */}
+        {/* Camera follows player horizontally */}
         <div 
-          className="absolute inset-0 opacity-20"
-          style={{
-            backgroundSize: '10px 10px',
-            backgroundImage: 'radial-gradient(circle, white 1px, transparent 1px)',
+          className="absolute transition-transform duration-300 ease-out"
+          style={{ 
+            transform: `translateX(${
+              Math.min(
+                Math.max(windowSize.width / 2 - state.player.x, -800 + windowSize.width / 2),
+                0
+              )
+            }px)` 
           }}
-        ></div>
-        
-        {/* Element-specific ambient effects */}
-        <div className="absolute inset-0 pointer-events-none">
-          {state.player.currentElement === 'fire' && (
-            <div className="absolute inset-0 bg-gradient-to-t from-red-900/30 to-transparent"></div>
-          )}
-          {state.player.currentElement === 'water' && (
-            <div className="absolute inset-0 bg-gradient-to-t from-blue-900/30 to-transparent"></div>
-          )}
-          {state.player.currentElement === 'earth' && (
-            <div className="absolute inset-0 bg-gradient-to-t from-green-900/30 to-transparent"></div>
-          )}
-          {state.player.currentElement === 'air' && (
-            <div className="absolute inset-0 bg-gradient-to-t from-purple-900/30 to-transparent"></div>
-          )}
-        </div>
-        
-        {/* Game elements container - where game objects get positioned */}
-        <div className="absolute inset-0">
-          {/* Camera follows player horizontally */}
-          <div 
-            className="absolute transition-transform duration-300 ease-out"
-            style={{ 
-              transform: `translateX(${
-                Math.min(
-                  Math.max(windowSize.width / 2 - state.player.x, -800 + windowSize.width / 2),
-                  0
-                )
-              }px)` 
-            }}
-          >
-            {/* Platforms */}
-            {state.platforms.map((platform, index) => (
-              <Platform
-                key={`platform-${index}`}
-                x={platform.x}
-                y={platform.y}
-                width={platform.width}
-                height={platform.height}
-                element={platform.element}
-              />
-            ))}
-            
-            {/* Spirits */}
-            {spirits.map((spirit, index) => (
-              <Spirit
-                key={`spirit-${index}`}
-                element={spirit.element}
-                x={spirit.x}
-                y={spirit.y}
-              />
-            ))}
-            
-            {/* Player */}
-            <Player />
-          </div>
-        </div>
-        
-        {/* Game UI layers */}
-        <GameHUD />
-        <ControlsHelper />
-        <PauseScreen />
-        <GameOverScreen />
-        <DebugOverlay />
-        
-        {/* Mobile controls overlay (for touch devices) */}
-        <div className="md:hidden absolute bottom-4 left-4 right-4 z-30 flex justify-between">
-          <div className="flex gap-2">
-            <button
-              className="w-16 h-16 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center shadow-lg border border-white/10"
-              onTouchStart={() => dispatch({ type: 'PLAYER_MOVE_LEFT', payload: true })}
-              onTouchEnd={() => dispatch({ type: 'PLAYER_MOVE_LEFT', payload: false })}
-            >
-              ←
-            </button>
-            <button
-              className="w-16 h-16 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center shadow-lg border border-white/10"
-              onTouchStart={() => dispatch({ type: 'PLAYER_MOVE_RIGHT', payload: true })}
-              onTouchEnd={() => dispatch({ type: 'PLAYER_MOVE_RIGHT', payload: false })}
-            >
-              →
-            </button>
-          </div>
+        >
+          {/* Platforms */}
+          {state.platforms.map((platform, index) => (
+            <Platform
+              key={`platform-${index}`}
+              x={platform.x}
+              y={platform.y}
+              width={platform.width}
+              height={platform.height}
+              element={platform.element}
+              canPassThrough={platform.canPassThrough}
+            />
+          ))}
           
-          <div className="flex gap-2">
-            <button
-              className="w-16 h-16 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center shadow-lg border border-white/10"
-              onTouchStart={() => dispatch({ type: 'PLAYER_DUCK', payload: true })}
-              onTouchEnd={() => dispatch({ type: 'PLAYER_DUCK', payload: false })}
-            >
-              ↓
-            </button>
-            <button
-              className="w-16 h-16 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center shadow-lg border border-white/10"
-              onClick={() => dispatch({ type: 'PLAYER_JUMP' })}
-            >
-              ↑
-            </button>
-          </div>
+          {/* Spirits for selection (only show on the first level) */}
+          {state.level === 1 && (
+            <div className="absolute top-100 left-120 flex space-x-20 items-center">
+              {state.availableElements.map((element, index) => (
+                <Spirit
+                  key={`spirit-intro-${element}`}
+                  element={element}
+                  x={200 + (index * 120)}
+                  y={150}
+                />
+              ))}
+            </div>
+          )}
+          
+          {/* Enemies */}
+          {state.enemies.map((enemy) => (
+            <Enemy key={`enemy-${enemy.id}`} enemy={enemy} />
+          ))}
+          
+          {/* Projectiles */}
+          {state.projectiles.map((projectile) => (
+            <Projectile key={`projectile-${projectile.id}`} projectile={projectile} />
+          ))}
+          
+          {/* Player */}
+          <Player />
+        </div>
+      </div>
+      
+      {/* Game UI layers */}
+      <GameHUD />
+      <ElementSelection />
+      <ElementTutorial />
+      <ControlsHelper />
+      <PauseScreen />
+      <GameOverScreen />
+      
+      {/* Mobile controls overlay (for touch devices) */}
+      <div className="md:hidden absolute bottom-20 left-4 right-4 z-30 flex justify-between">
+        <div className="flex gap-2">
+          <button
+            className="w-16 h-16 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center shadow-lg border border-white/10"
+            onTouchStart={() => dispatch({ type: 'PLAYER_MOVE_LEFT', payload: true })}
+            onTouchEnd={() => dispatch({ type: 'PLAYER_MOVE_LEFT', payload: false })}
+          >
+            ←
+          </button>
+          <button
+            className="w-16 h-16 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center shadow-lg border border-white/10"
+            onTouchStart={() => dispatch({ type: 'PLAYER_MOVE_RIGHT', payload: true })}
+            onTouchEnd={() => dispatch({ type: 'PLAYER_MOVE_RIGHT', payload: false })}
+          >
+            →
+          </button>
+        </div>
+        
+        <div className="flex gap-2">
+          <button
+            className="w-16 h-16 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center shadow-lg border border-white/10"
+            onTouchStart={() => dispatch({ type: 'PLAYER_DUCK', payload: true })}
+            onTouchEnd={() => dispatch({ type: 'PLAYER_DUCK', payload: false })}
+          >
+            ↓
+          </button>
+          <button
+            className="w-16 h-16 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center shadow-lg border border-white/10"
+            onClick={() => dispatch({ type: 'PLAYER_JUMP' })}
+          >
+            ↑
+          </button>
+          <button
+            className="w-16 h-16 rounded-full bg-orange-500/50 backdrop-blur-md flex items-center justify-center shadow-lg border border-white/10"
+            onClick={handleShoot}
+          >
+            ★
+          </button>
         </div>
       </div>
     </div>

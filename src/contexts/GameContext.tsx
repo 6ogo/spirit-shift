@@ -3,6 +3,19 @@ import React, { createContext, useContext, useReducer, useEffect } from 'react';
 // Types
 export type ElementType = 'spirit' | 'fire' | 'water' | 'earth' | 'air';
 
+export interface Enemy {
+  id: number;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  health: number;
+  maxHealth: number;
+  element: ElementType;
+  direction: 'left' | 'right';
+  speed: number;
+}
+
 export interface Platform {
   x: number;
   y: number;
@@ -10,6 +23,18 @@ export interface Platform {
   height: number;
   element: ElementType;
   canPassThrough: boolean;
+}
+
+export interface ProjectileState {
+  id: number;
+  x: number;
+  y: number;
+  velocityX: number;
+  element: ElementType;
+  damage: number;
+  width: number;
+  height: number;
+  active: boolean;
 }
 
 export interface PlayerState {
@@ -23,6 +48,9 @@ export interface PlayerState {
   isDucking: boolean;
   isMovingLeft: boolean;
   isMovingRight: boolean;
+  isShooting: boolean;
+  lastShootTime: number;
+  shootCooldown: number;
   currentElement: ElementType;
   health: number;
   maxHealth: number;
@@ -39,7 +67,12 @@ export interface GameState {
   level: number;
   player: PlayerState;
   platforms: Platform[];
+  enemies: Enemy[];
+  projectiles: ProjectileState[];
   availableElements: ElementType[];
+  nextProjectileId: number;
+  levelProgress: number;
+  worldSeed: number;
 }
 
 type GameAction = 
@@ -57,12 +90,20 @@ type GameAction =
   | { type: 'PLAYER_DUCK', payload: boolean }
   | { type: 'PLAYER_JUMP' }
   | { type: 'PLAYER_LAND', payload: { platformY: number } }
+  | { type: 'PLAYER_SHOOT' }
   | { type: 'CHANGE_ELEMENT', payload: ElementType }
   | { type: 'UPDATE_HEALTH', payload: number }
   | { type: 'UPDATE_ENERGY', payload: number }
   | { type: 'UPDATE_SCORE', payload: number }
   | { type: 'SET_PLATFORMS', payload: Platform[] }
-  | { type: 'SET_ON_PLATFORM', payload: boolean };
+  | { type: 'SET_ON_PLATFORM', payload: boolean }
+  | { type: 'ADVANCE_LEVEL' }
+  | { type: 'GENERATE_LEVEL' }
+  | { type: 'ADD_ENEMY', payload: Enemy }
+  | { type: 'DAMAGE_ENEMY', payload: { id: number, damage: number } }
+  | { type: 'REMOVE_ENEMY', payload: number }
+  | { type: 'UPDATE_PROJECTILES' }
+  | { type: 'REMOVE_PROJECTILE', payload: number };
 
 // Initial state
 const initialPlayerState: PlayerState = {
@@ -76,6 +117,9 @@ const initialPlayerState: PlayerState = {
   isDucking: false,
   isMovingLeft: false,
   isMovingRight: false,
+  isShooting: false,
+  lastShootTime: 0,
+  shootCooldown: 500, // milliseconds
   currentElement: 'spirit',
   health: 100,
   maxHealth: 100,
@@ -84,17 +128,148 @@ const initialPlayerState: PlayerState = {
   onPlatform: false,
 };
 
-// Initial platforms
-const initialPlatforms: Platform[] = [
-  // Ground platform - can't pass through
-  { x: 0, y: 350, width: 1600, height: 20, element: 'spirit', canPassThrough: false },
+// Helper function to generate random platforms
+const generatePlatforms = (level: number, seed: number): Platform[] => {
+  // Use seed for consistent random generation
+  const rng = (min: number, max: number) => {
+    seed = (seed * 9301 + 49297) % 233280;
+    const random = seed / 233280;
+    return min + random * (max - min);
+  };
+
+  // Base platforms - always include ground
+  const platforms: Platform[] = [
+    // Ground platform - always at the bottom and can't pass through
+    { x: 0, y: 500, width: 2000, height: 30, element: 'spirit', canPassThrough: false },
+  ];
   
-  // Floating platforms - can pass through from below
-  { x: 200, y: 250, width: 100, height: 15, element: 'fire', canPassThrough: true },
-  { x: 400, y: 200, width: 120, height: 15, element: 'water', canPassThrough: true },
-  { x: 600, y: 250, width: 80, height: 15, element: 'earth', canPassThrough: true },
-  { x: 800, y: 180, width: 100, height: 15, element: 'air', canPassThrough: true },
-];
+  // Starting platform is needed for player
+  platforms.push({
+    x: 50, 
+    y: 350, 
+    width: 200, 
+    height: 15, 
+    element: 'spirit', 
+    canPassThrough: true
+  });
+
+  // Elements to use for platform generation
+  const elements: ElementType[] = ['fire', 'water', 'earth', 'air'];
+  
+  // Number of platforms increases with level
+  const platformCount = 5 + Math.min(level * 3, 20);
+  
+  // Generate platforms with increasing difficulty
+  const minY = 150; // Minimum height
+  const maxY = 450; // Maximum height
+  const levelWidth = 1000 + level * 200; // Level gets wider with each level
+  
+  for (let i = 0; i < platformCount; i++) {
+    // Avoid platform overlaps by segmenting the x space
+    const segmentWidth = levelWidth / platformCount;
+    const segmentStart = segmentWidth * i;
+    const xPos = segmentStart + rng(20, segmentWidth - 100);
+    
+    // Ensure vertical spacing between platforms
+    const yPos = rng(minY, maxY);
+    
+    // Platform width varies
+    const width = rng(80, 200);
+    
+    // Randomly choose an element
+    const elementIndex = Math.floor(rng(0, elements.length));
+    const element = elements[elementIndex];
+    
+    // Higher probability of pass-through platforms as level increases
+    const passThrough = rng(0, 10) < (7 + level * 0.5);
+    
+    // Check for overlaps with existing platforms
+    const overlaps = platforms.some(p => {
+      return (
+        xPos < p.x + p.width &&
+        xPos + width > p.x &&
+        Math.abs(yPos - p.y) < 30 // Ensure vertical spacing
+      );
+    });
+    
+    if (!overlaps) {
+      platforms.push({
+        x: xPos,
+        y: yPos,
+        width,
+        height: 15,
+        element,
+        canPassThrough: passThrough
+      });
+    } else {
+      // Try again with different position if overlap
+      i--; // Retry this iteration
+    }
+  }
+  
+  return platforms;
+};
+
+// Helper function to generate enemies based on level
+const generateEnemies = (level: number, platforms: Platform[], seed: number): Enemy[] => {
+  const enemies: Enemy[] = [];
+  
+  // Use seed for consistent random generation
+  const rng = (min: number, max: number) => {
+    seed = (seed * 9301 + 49297) % 233280;
+    const random = seed / 233280;
+    return min + random * (max - min);
+  };
+  
+  // Number of enemies increases with level
+  const enemyCount = Math.min(level * 2, 15);
+  
+  // Elements to use for enemy generation
+  const elements: ElementType[] = ['fire', 'water', 'earth', 'air'];
+  
+  // Skip the first (starting) platform to avoid immediate enemies
+  const availablePlatforms = platforms.slice(2);
+  
+  for (let i = 0; i < enemyCount; i++) {
+    if (availablePlatforms.length === 0) break; // No more platforms to place enemies
+    
+    // Choose a random platform to place the enemy
+    const platformIndex = Math.floor(rng(0, availablePlatforms.length));
+    const platform = availablePlatforms[platformIndex];
+    
+    // Position enemy on the platform
+    const xPos = platform.x + rng(20, platform.width - 40);
+    const yPos = platform.y - 30; // 30px above platform
+    
+    // Randomly choose an element
+    const elementIndex = Math.floor(rng(0, elements.length));
+    const element = elements[elementIndex];
+    
+    // Enemy speed increases with level
+    const speed = 0.5 + rng(0, level * 0.2);
+    
+    enemies.push({
+      id: i,
+      x: xPos,
+      y: yPos,
+      width: 30,
+      height: 30,
+      health: 30 + level * 5,
+      maxHealth: 30 + level * 5,
+      element: element,
+      direction: rng(0, 1) > 0.5 ? 'left' : 'right',
+      speed: speed
+    });
+    
+    // Remove platform from available list to avoid too many enemies on one platform
+    availablePlatforms.splice(platformIndex, 1);
+  }
+  
+  return enemies;
+};
+
+// Initial platforms
+const initialPlatforms = generatePlatforms(1, Date.now());
 
 const initialGameState: GameState = {
   isPlaying: false,
@@ -104,7 +279,12 @@ const initialGameState: GameState = {
   level: 1,
   player: initialPlayerState,
   platforms: initialPlatforms,
+  enemies: [],
+  projectiles: [],
   availableElements: ['spirit', 'fire', 'water', 'earth', 'air'],
+  nextProjectileId: 1,
+  levelProgress: 0,
+  worldSeed: Date.now(), // Use current time as seed for random generation
 };
 
 // Game reducer
@@ -112,33 +292,54 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
   console.log("Game reducer:", action.type, action); // Debug log
   
   switch (action.type) {
-    case 'START_GAME':
-      console.log("Starting game, setting isPlaying to true");
+    case 'START_GAME': {
+      // Generate a new seed for this game
+      const newSeed = Date.now();
+      const newPlatforms = generatePlatforms(1, newSeed);
+      const newEnemies = generateEnemies(1, newPlatforms, newSeed);
+      
       return { 
         ...initialGameState, 
-        isPlaying: true, 
+        isPlaying: true,
+        platforms: newPlatforms,
+        enemies: newEnemies,
+        worldSeed: newSeed,
         player: {
           ...initialPlayerState,
+          x: 100, // Starting position
+          y: 300, // Starting position
           onPlatform: true // Start on platform to avoid initial falling
         }
       };
+    }
     case 'PAUSE_GAME':
       return { ...state, isPaused: true };
     case 'RESUME_GAME':
       return { ...state, isPaused: false };
     case 'END_GAME':
       return { ...initialGameState };
-    case 'RESTART_GAME':
+    case 'RESTART_GAME': {
+      // Generate a new seed for this game
+      const newSeed = Date.now();
+      const newPlatforms = generatePlatforms(1, newSeed);
+      const newEnemies = generateEnemies(1, newPlatforms, newSeed);
+      
       return { 
         ...initialGameState, 
         isPlaying: true,
         score: 0, 
         level: 1,
+        platforms: newPlatforms,
+        enemies: newEnemies,
+        worldSeed: newSeed,
         player: {
           ...initialPlayerState,
+          x: 100, // Starting position
+          y: 300, // Starting position
           onPlatform: true // Start on platform to avoid initial falling
         }
       };
+    }
     case 'GAME_OVER':
       return { ...state, gameOver: true };
     case 'PLAYER_MOVE':
@@ -168,8 +369,8 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
           velocityY: action.payload,
         },
       };
-    case 'PLAYER_MOVE_LEFT':
-      const moveSpeed = state.player.isDucking ? 2 : 5; // Slower when ducking
+    case 'PLAYER_MOVE_LEFT': {
+      const moveSpeed = state.player.isDucking ? 3 : 5; // Slower when ducking
       return {
         ...state,
         player: {
@@ -178,8 +379,9 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
           velocityX: action.payload ? -moveSpeed : state.player.isMovingRight ? moveSpeed : 0,
         },
       };
-    case 'PLAYER_MOVE_RIGHT':
-      const moveSpeedRight = state.player.isDucking ? 2 : 5; // Slower when ducking
+    }
+    case 'PLAYER_MOVE_RIGHT': {
+      const moveSpeedRight = state.player.isDucking ? 3 : 5; // Slower when ducking
       return {
         ...state,
         player: {
@@ -188,6 +390,7 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
           velocityX: action.payload ? moveSpeedRight : state.player.isMovingLeft ? -moveSpeedRight : 0,
         },
       };
+    }
     case 'PLAYER_DUCK':
       // Adjust height when ducking
       return {
@@ -202,7 +405,7 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
             : (state.player.isMovingRight ? 5 : (state.player.isMovingLeft ? -5 : 0)),
         },
       };
-    case 'PLAYER_JUMP':
+    case 'PLAYER_JUMP': {
       // Only jump if we're not already jumping
       if (state.player.isJumping || !state.player.onPlatform) return state;
       
@@ -236,7 +439,8 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
           velocityY: jumpVelocity,
         },
       };
-    case 'PLAYER_LAND':
+    }
+    case 'PLAYER_LAND': {
       // Earth element creates a small "shock" when landing from a high jump
       const landingY = action.payload.platformY - state.player.height;
       
@@ -250,6 +454,7 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
           onPlatform: true,
         },
       };
+    }
     case 'SET_ON_PLATFORM':
       return {
         ...state,
@@ -258,7 +463,173 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
           onPlatform: action.payload,
         },
       };
-    case 'CHANGE_ELEMENT':
+    case 'PLAYER_SHOOT': {
+      const now = Date.now();
+      
+      // Check if enough time has passed since last shot
+      if (now - state.player.lastShootTime < state.player.shootCooldown) {
+        return state; // Still on cooldown
+      }
+      
+      // Check if enough energy to shoot
+      if (state.player.energy < 10) {
+        return state; // Not enough energy
+      }
+      
+      // Create projectile based on current element
+      const projectileSpeed = 10;
+      let projectileWidth = 10;
+      let projectileHeight = 10;
+      let projectileDamage = 10;
+      
+      // Adjust projectile properties based on element
+      switch (state.player.currentElement) {
+        case 'fire':
+          projectileDamage = 15;
+          projectileWidth = 12;
+          projectileHeight = 12;
+          break;
+        case 'water':
+          projectileDamage = 8;
+          projectileWidth = 8;
+          projectileHeight = 8;
+          break;
+        case 'earth':
+          projectileDamage = 20;
+          projectileWidth = 15;
+          projectileHeight = 15;
+          break;
+        case 'air':
+          projectileDamage = 5;
+          projectileWidth = 6;
+          projectileHeight = 6;
+          break;
+        default:
+          // Spirit form is balanced
+          break;
+      }
+      
+      // Direction based on player's facing
+      const direction = state.player.isMovingLeft ? -1 : 1;
+      
+      // Create new projectile
+      const newProjectile: ProjectileState = {
+        id: state.nextProjectileId,
+        x: state.player.x + (direction * state.player.width / 2),
+        y: state.player.y - state.player.height / 2,
+        velocityX: direction * projectileSpeed,
+        element: state.player.currentElement,
+        damage: projectileDamage,
+        width: projectileWidth,
+        height: projectileHeight,
+        active: true
+      };
+      
+      return {
+        ...state,
+        player: {
+          ...state.player,
+          lastShootTime: now,
+          energy: state.player.energy - 10, // Consume energy
+        },
+        projectiles: [...state.projectiles, newProjectile],
+        nextProjectileId: state.nextProjectileId + 1
+      };
+    }
+    case 'UPDATE_PROJECTILES': {
+      // Update position of all projectiles
+      const updatedProjectiles = state.projectiles
+        .map(projectile => {
+          if (!projectile.active) return projectile;
+          
+          // Move projectile
+          const newX = projectile.x + projectile.velocityX;
+          
+          // Check if out of bounds
+          if (newX < 0 || newX > 2000) {
+            return { ...projectile, active: false };
+          }
+          
+          // Check for collisions with enemies
+          let hasCollided = false;
+          const updatedEnemies = [...state.enemies];
+          
+          for (let i = 0; i < updatedEnemies.length; i++) {
+            const enemy = updatedEnemies[i];
+            
+            // Check collision
+            if (
+              newX + projectile.width / 2 > enemy.x - enemy.width / 2 &&
+              newX - projectile.width / 2 < enemy.x + enemy.width / 2 &&
+              projectile.y + projectile.height / 2 > enemy.y - enemy.height &&
+              projectile.y - projectile.height / 2 < enemy.y
+            ) {
+              // Calculate damage based on elemental advantage/disadvantage
+              let damageMultiplier = 1;
+              
+              // Elemental interactions
+              if (
+                (projectile.element === 'fire' && enemy.element === 'air') ||
+                (projectile.element === 'water' && enemy.element === 'fire') ||
+                (projectile.element === 'earth' && enemy.element === 'water') ||
+                (projectile.element === 'air' && enemy.element === 'earth')
+              ) {
+                // Advantage: double damage
+                damageMultiplier = 2;
+              } else if (
+                (projectile.element === 'air' && enemy.element === 'fire') ||
+                (projectile.element === 'fire' && enemy.element === 'water') ||
+                (projectile.element === 'water' && enemy.element === 'earth') ||
+                (projectile.element === 'earth' && enemy.element === 'air')
+              ) {
+                // Disadvantage: half damage
+                damageMultiplier = 0.5;
+              } else if (projectile.element === enemy.element) {
+                // Same element: reduced damage
+                damageMultiplier = 0.25;
+              }
+              
+              // Apply damage
+              const damage = projectile.damage * damageMultiplier;
+              updatedEnemies[i] = {
+                ...enemy,
+                health: Math.max(0, enemy.health - damage)
+              };
+              
+              // Deactivate projectile
+              hasCollided = true;
+              break;
+            }
+          }
+          
+          return {
+            ...projectile,
+            x: newX,
+            active: !hasCollided
+          };
+        })
+        .filter(projectile => projectile.active);
+      
+      // Check for defeated enemies
+      const remainingEnemies = state.enemies.filter(enemy => enemy.health > 0);
+      const defeatedCount = state.enemies.length - remainingEnemies.length;
+      
+      // Award points for defeated enemies
+      const scoreIncrease = defeatedCount * 10;
+      
+      return {
+        ...state,
+        projectiles: updatedProjectiles,
+        enemies: remainingEnemies,
+        score: state.score + scoreIncrease
+      };
+    }
+    case 'REMOVE_PROJECTILE':
+      return {
+        ...state,
+        projectiles: state.projectiles.filter(p => p.id !== action.payload)
+      };
+    case 'CHANGE_ELEMENT': {
       // Add some score for changing elements (encourages experimentation)
       let scoreBonus = state.player.currentElement !== action.payload ? 5 : 0;
       
@@ -273,6 +644,7 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
           energy: state.player.energy, // Keep energy the same
         },
       };
+    }
     case 'SET_PLATFORMS':
       return {
         ...state,
@@ -301,6 +673,72 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
         ...state,
         score: state.score + action.payload,
       };
+    case 'ADVANCE_LEVEL': {
+      const newLevel = state.level + 1;
+      const newPlatforms = generatePlatforms(newLevel, state.worldSeed + newLevel);
+      const newEnemies = generateEnemies(newLevel, newPlatforms, state.worldSeed + newLevel);
+      
+      return {
+        ...state,
+        level: newLevel,
+        platforms: newPlatforms,
+        enemies: newEnemies,
+        player: {
+          ...state.player,
+          x: 100, // Reset to start of level
+          y: 300,
+          velocityX: 0,
+          velocityY: 0,
+          onPlatform: true,
+          // Restore some health/energy as reward
+          health: Math.min(state.player.maxHealth, state.player.health + 20),
+          energy: Math.min(state.player.maxEnergy, state.player.energy + 50),
+        },
+        projectiles: [], // Clear projectiles
+        levelProgress: 0,
+      };
+    }
+    case 'GENERATE_LEVEL': {
+      const newPlatforms = generatePlatforms(state.level, state.worldSeed + state.level);
+      const newEnemies = generateEnemies(state.level, newPlatforms, state.worldSeed + state.level);
+      
+      return {
+        ...state,
+        platforms: newPlatforms,
+        enemies: newEnemies,
+      };
+    }
+    case 'ADD_ENEMY':
+      return {
+        ...state,
+        enemies: [...state.enemies, action.payload],
+      };
+    case 'DAMAGE_ENEMY': {
+      const updatedEnemies = state.enemies.map(enemy => 
+        enemy.id === action.payload.id 
+          ? { ...enemy, health: Math.max(0, enemy.health - action.payload.damage) } 
+          : enemy
+      );
+      
+      // Check if any enemies were defeated
+      const previousCount = state.enemies.length;
+      const remainingEnemies = updatedEnemies.filter(enemy => enemy.health > 0);
+      const defeatedCount = previousCount - remainingEnemies.length;
+      
+      // Award points for defeated enemies
+      const scoreIncrease = defeatedCount * 10;
+      
+      return {
+        ...state,
+        enemies: remainingEnemies,
+        score: state.score + scoreIncrease
+      };
+    }
+    case 'REMOVE_ENEMY':
+      return {
+        ...state,
+        enemies: state.enemies.filter(enemy => enemy.id !== action.payload),
+      };
     default:
       return state;
   }
@@ -322,7 +760,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   
   // Debug state changes
   useEffect(() => {
-    console.log("Game state updated:", state);
+    // console.log("Game state updated:", state);
   }, [state]);
   
   const elementColors: Record<ElementType, string> = {
@@ -386,6 +824,11 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         case 'Escape':
           dispatch({ type: 'PAUSE_GAME' });
           break;
+        case ' ':
+        case 'f':
+        case 'F':
+          dispatch({ type: 'PLAYER_SHOOT' });
+          break;
       }
     };
     
@@ -417,6 +860,29 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       window.removeEventListener('keyup', handleKeyUp);
     };
   }, [state.isPlaying, state.isPaused]);
+  
+  // Update projectiles and check for collisions
+  useEffect(() => {
+    if (!state.isPlaying || state.isPaused || state.gameOver) return;
+    
+    const projectileInterval = setInterval(() => {
+      if (state.projectiles.length > 0) {
+        dispatch({ type: 'UPDATE_PROJECTILES' });
+      }
+    }, 50);
+    
+    return () => clearInterval(projectileInterval);
+  }, [state.isPlaying, state.isPaused, state.gameOver, state.projectiles.length]);
+  
+  // Check if player has progressed enough to advance level
+  useEffect(() => {
+    if (!state.isPlaying || state.isPaused || state.gameOver) return;
+    
+    // If player has moved far enough to the right, advance level
+    if (state.player.x > 1500) {
+      dispatch({ type: 'ADVANCE_LEVEL' });
+    }
+  }, [state.isPlaying, state.isPaused, state.gameOver, state.player.x]);
   
   return (
     <GameContext.Provider value={{ state, dispatch, elementColors, elementNames }}>
