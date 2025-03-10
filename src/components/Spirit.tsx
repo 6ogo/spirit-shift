@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { ElementType, useGame } from '@/contexts/GameContext';
@@ -43,40 +42,46 @@ const Spirit: React.FC<SpiritProps> = ({ element, x, y, onPossess }) => {
         left: x, 
         top: y,
       }}
-      onClick={handleClick}
-      onHoverStart={() => setIsHovered(true)}
-      onHoverEnd={() => setIsHovered(false)}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
     >
-      <div 
-        className={`w-14 h-14 rounded-full flex items-center justify-center animate-float transition-all duration-300 ${isHovered ? 'shadow-lg' : ''}`}
-        style={{ 
-          backgroundColor: elementColors[element],
-          boxShadow: `0 0 ${isHovered ? '15px 5px' : '10px 2px'} ${elementColors[element]}80`
-        }}
+      {/* Make the entire div clickable by wrapping the content in a button */}
+      <button 
+        onClick={handleClick}
+        className="bg-transparent border-0 p-0 m-0 cursor-pointer focus:outline-none"
+        style={{ width: '100%', height: '100%' }}
       >
-        <div className="text-xl font-bold text-white flex flex-col items-center">
-          {getElementSymbol()}
+        <div 
+          className={`w-14 h-14 rounded-full flex items-center justify-center transition-all duration-300 ${isHovered ? 'shadow-lg' : ''}`}
+          style={{ 
+            backgroundColor: elementColors[element],
+            boxShadow: `0 0 ${isHovered ? '15px 5px' : '10px 2px'} ${elementColors[element]}80`
+          }}
+        >
+          <div className="text-xl font-bold text-white flex flex-col items-center">
+            {getElementSymbol()}
+          </div>
         </div>
-      </div>
-      
-      {/* Interact prompt */}
-      <motion.div
-        initial={{ opacity: 0, y: -10 }}
-        animate={{ opacity: isHovered ? 1 : 0, y: isHovered ? -20 : -10 }}
-        className="absolute w-full text-center text-xs font-bold text-white"
-      >
-        Possess
-      </motion.div>
-      
-      {/* Spirit name label */}
-      <motion.div
-        initial={{ opacity: 0, y: 5 }}
-        animate={{ opacity: 0.9, y: 0 }}
-        transition={{ delay: 0.2 }}
-        className="absolute left-1/2 -translate-x-1/2 -bottom-6 whitespace-nowrap text-sm font-medium"
-      >
-        {elementNames[element]}
-      </motion.div>
+        
+        {/* Interact prompt */}
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: isHovered ? 1 : 0, y: isHovered ? -20 : -10 }}
+          className="absolute w-full text-center text-xs font-bold text-white"
+        >
+          Possess
+        </motion.div>
+        
+        {/* Spirit name label */}
+        <motion.div
+          initial={{ opacity: 0, y: 5 }}
+          animate={{ opacity: 0.9, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="absolute left-1/2 -translate-x-1/2 -bottom-6 whitespace-nowrap text-sm font-medium"
+        >
+          {elementNames[element]}
+        </motion.div>
+      </button>
       
       {/* Glowing effect */}
       <motion.div 
@@ -86,7 +91,8 @@ const Spirit: React.FC<SpiritProps> = ({ element, x, y, onPossess }) => {
         }}
         transition={{ 
           repeat: Infinity, 
-          duration: 2 
+          duration: 4,  // Slower animation duration
+          ease: "easeInOut" 
         }}
         className="absolute inset-0 rounded-full -z-10"
         style={{ 
@@ -115,9 +121,9 @@ const Spirit: React.FC<SpiritProps> = ({ element, x, y, onPossess }) => {
             opacity: [0, 1, 0] 
           }}
           transition={{ 
-            duration: 1 + Math.random(), 
+            duration: 2 + Math.random(),  // Slower animation
             repeat: Infinity, 
-            repeatDelay: Math.random() * 2
+            repeatDelay: Math.random() * 3  // Longer delay between animations
           }}
         />
       ))}
@@ -140,8 +146,8 @@ const Spirit: React.FC<SpiritProps> = ({ element, x, y, onPossess }) => {
               width: [6, 2, 6]
             }}
             transition={{ 
-              duration: 0.8 + Math.random() * 0.6,
-              delay: i * 0.2,
+              duration: 1.5 + Math.random() * 0.8,  // Slower fire animation
+              delay: i * 0.4,
               repeat: Infinity,
               repeatType: "reverse"
             }}
@@ -163,7 +169,7 @@ const Spirit: React.FC<SpiritProps> = ({ element, x, y, onPossess }) => {
               y: ['0%', '100%', '0%']
             }}
             transition={{ 
-              duration: 3,
+              duration: 5,  // Much slower water animation
               ease: "easeInOut",
               repeat: Infinity,
             }}
