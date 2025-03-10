@@ -10,6 +10,7 @@ interface ProjectileProps {
   height: number;
   element: ElementType;
   velocityX: number;
+  velocityY: number; // Add vertical velocity
 }
 
 const Projectile: React.FC<ProjectileProps> = ({
@@ -19,10 +20,15 @@ const Projectile: React.FC<ProjectileProps> = ({
   width,
   height,
   element,
-  velocityX
+  velocityX,
+  velocityY
 }) => {
   const { elementColors } = useGame();
-  const direction = velocityX > 0 ? 'right' : 'left';
+  // Calculate direction based on horizontal and vertical velocity
+  const direction = velocityX >= 0 ? 'right' : 'left';
+  
+  // Calculate angle for rotation
+  const angle = Math.atan2(velocityY, velocityX) * (180 / Math.PI);
   
   // Element-specific styling and effects
   const getProjectileStyles = () => {
@@ -74,25 +80,28 @@ const Projectile: React.FC<ProjectileProps> = ({
         left: x,
         top: y,
         transform: 'translate(-50%, -50%)',
+        willChange: 'transform', // Optimize for animation performance
       }}
     >
       {/* Motion trail */}
       <motion.div
         className="absolute"
         style={{
-          width: width * 2.5,
+          width: width * 3, // Longer trail
           height: height,
           backgroundColor: styles.trailColor,
           borderRadius: element === 'earth' ? '2px' : '50%',
           filter: 'blur(4px)',
           opacity: 0.7,
+          transform: `rotate(${angle}deg)`,
+          transformOrigin: direction === 'right' ? 'left center' : 'right center',
           left: direction === 'right' ? -width * 2 : width,
         }}
         animate={{
           opacity: [0.7, 0]
         }}
         transition={{
-          duration: 0.3,
+          duration: 0.2, // Faster fade for smoother animation
           ease: "easeOut"
         }}
       />
@@ -107,11 +116,11 @@ const Projectile: React.FC<ProjectileProps> = ({
         }}
         transition={{
           rotate: {
-            duration: 0.8,
+            duration: 0.6, // Faster rotation
             repeat: Infinity,
             ease: "linear"
           },
-          scale: { duration: 0.2 }
+          scale: { duration: 0.1 } // Faster initial animation
         }}
         className={styles.className}
         style={{
@@ -119,6 +128,7 @@ const Projectile: React.FC<ProjectileProps> = ({
           height,
           background: styles.background,
           boxShadow: styles.boxShadow,
+          willChange: 'transform, opacity', // Optimize performance
         }}
       />
       
@@ -131,7 +141,7 @@ const Projectile: React.FC<ProjectileProps> = ({
             boxShadow: ['0 0 5px 2px rgba(255,0,0,0.5)', '0 0 10px 4px rgba(255,0,0,0.3)', '0 0 5px 2px rgba(255,0,0,0.5)']
           }}
           transition={{
-            duration: 0.7,
+            duration: 0.5, // Faster animation
             repeat: Infinity,
             ease: "easeInOut"
           }}
@@ -155,9 +165,9 @@ const Projectile: React.FC<ProjectileProps> = ({
               opacity: [0.8, 0]
             }}
             transition={{
-              duration: 0.5 + Math.random() * 0.3,
+              duration: 0.3 + Math.random() * 0.2, // Faster animation
               repeat: Infinity,
-              repeatDelay: Math.random() * 0.2
+              repeatDelay: Math.random() * 0.1 // Shorter delay
             }}
           />
         ))
@@ -171,7 +181,7 @@ const Projectile: React.FC<ProjectileProps> = ({
             opacity: [0.6, 0.2, 0.6],
           }}
           transition={{
-            duration: 0.8,
+            duration: 0.5, // Faster animation
             repeat: Infinity,
             ease: "easeInOut"
           }}

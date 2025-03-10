@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useGame, ElementType } from '@/contexts/GameContext';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -13,16 +12,9 @@ const Player: React.FC<PlayerProps> = ({ width = 40, height = 50 }) => {
   const { player } = state;
   const [isShifting, setIsShifting] = useState(false);
   const [lastElement, setLastElement] = useState<ElementType>(player.currentElement);
-  const [facingDirection, setFacingDirection] = useState('right');
   
-  // Track player direction for animation
-  useEffect(() => {
-    if (player.velocityX > 0) {
-      setFacingDirection('right');
-    } else if (player.velocityX < 0) {
-      setFacingDirection('left');
-    }
-  }, [player.velocityX]);
+  // Use the facingDirection from game state instead of calculating locally
+  const facingDirection = player.facingDirection;
   
   // Element shift animation
   useEffect(() => {
