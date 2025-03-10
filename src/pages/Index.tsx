@@ -19,7 +19,7 @@ const GameContent = () => {
       setIsLoading(true);
       const timer = setTimeout(() => {
         setIsLoading(false);
-      }, 50);
+      }, 200);
       
       return () => clearTimeout(timer);
     }
@@ -54,7 +54,7 @@ const GameContent = () => {
   
   // Render different screens based on game state
   return (
-    <div className="w-full h-full flex items-center justify-center">
+    <div className="w-full h-full flex items-center justify-center overflow-hidden">
       <AnimatePresence mode="wait">
         {!state.isPlaying && (
           <motion.div
@@ -72,22 +72,36 @@ const GameContent = () => {
         {isLoading && state.isPlaying && (
           <motion.div
             key="loading"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0 }}
             className="w-full h-full flex items-center justify-center"
           >
-            <div className="text-2xl font-bold text-white">Loading game...</div>
+            <div className="glass-panel p-8 rounded-xl flex flex-col items-center">
+              <div className="text-2xl font-bold text-gradient mb-4">Loading Game...</div>
+              <div className="w-32 h-1 bg-white/20 rounded-full overflow-hidden">
+                <motion.div 
+                  className="h-full bg-white"
+                  initial={{ width: 0 }}
+                  animate={{ width: "100%" }}
+                  transition={{ duration: 1.5, ease: "easeInOut" }}
+                />
+              </div>
+            </div>
           </motion.div>
         )}
         
         {!isLoading && state.isPlaying && (
           <motion.div
             key="game-canvas"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
+            initial={{ opacity: 0, scale: 0.5 }}
+            animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.5 }}
+            transition={{ 
+              duration: 0.7, 
+              scale: { type: "spring", stiffness: 300, damping: 25 },
+              opacity: { duration: 0.3 }
+            }}
             className="w-full h-full"
           >
             <GameCanvas />
