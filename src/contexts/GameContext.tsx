@@ -95,7 +95,7 @@ type GameAction =
   | { type: 'PLAYER_JUMP' }
   | { type: 'PLAYER_LAND', payload: { platformY: number } }
   | { type: 'PLAYER_SHOOT' }
-  | { type: 'UPDATE_AIM_DIRECTION', payload: { x: number, y: number } } // New action for mouse aiming
+  | { type: 'UPDATE_AIM_DIRECTION', payload: { x: number, y: number } }
   | { type: 'CHANGE_ELEMENT', payload: ElementType }
   | { type: 'UPDATE_HEALTH', payload: number }
   | { type: 'UPDATE_ENERGY', payload: number }
@@ -125,34 +125,30 @@ const initialPlayerState: PlayerState = {
   isMovingRight: false,
   isShooting: false,
   lastShootTime: 0,
-  shootCooldown: 500, // milliseconds
+  shootCooldown: 500,
   currentElement: 'spirit',
   health: 100,
   maxHealth: 100,
   energy: 100,
   maxEnergy: 100,
   onPlatform: false,
-  aimDirectionX: 1, // Default aiming right
+  aimDirectionX: 1,
   aimDirectionY: 0,
   facingDirection: 'right',
 };
 
 // Helper function to generate random platforms
 const generatePlatforms = (level: number, seed: number): Platform[] => {
-  // Use seed for consistent random generation
   const rng = (min: number, max: number) => {
     seed = (seed * 9301 + 49297) % 233280;
     const random = seed / 233280;
     return min + random * (max - min);
   };
 
-  // Base platforms - always include ground
   const platforms: Platform[] = [
-    // Ground platform - always at the bottom and can't pass through
     { x: 0, y: 500, width: 2000, height: 30, element: 'spirit', canPassThrough: false },
   ];
 
-  // Starting platform is needed for player
   platforms.push({
     x: 50,
     y: 350,
@@ -162,42 +158,33 @@ const generatePlatforms = (level: number, seed: number): Platform[] => {
     canPassThrough: true
   });
 
-  // Elements to use for platform generation
   const elements: ElementType[] = ['fire', 'water', 'earth', 'air'];
 
-  // Number of platforms increases with level
   const platformCount = 5 + Math.min(level * 3, 20);
 
-  // Generate platforms with increasing difficulty
-  const minY = 150; // Minimum height
-  const maxY = 450; // Maximum height
-  const levelWidth = 1000 + level * 200; // Level gets wider with each level
+  const minY = 150;
+  const maxY = 450;
+  const levelWidth = 1000 + level * 200;
 
   for (let i = 0; i < platformCount; i++) {
-    // Avoid platform overlaps by segmenting the x space
     const segmentWidth = levelWidth / platformCount;
     const segmentStart = segmentWidth * i;
     const xPos = segmentStart + rng(20, segmentWidth - 100);
 
-    // Ensure vertical spacing between platforms
     const yPos = rng(minY, maxY);
 
-    // Platform width varies
     const width = rng(80, 200);
 
-    // Randomly choose an element
     const elementIndex = Math.floor(rng(0, elements.length));
     const element = elements[elementIndex];
 
-    // Higher probability of pass-through platforms as level increases
     const passThrough = rng(0, 10) < (7 + level * 0.5);
 
-    // Check for overlaps with existing platforms
     const overlaps = platforms.some(p => {
       return (
         xPos < p.x + p.width &&
         xPos + width > p.x &&
-        Math.abs(yPos - p.y) < 30 // Ensure vertical spacing
+        Math.abs(yPos - p.y) < 30
       );
     });
 
@@ -211,8 +198,7 @@ const generatePlatforms = (level: number, seed: number): Platform[] => {
         canPassThrough: passThrough
       });
     } else {
-      // Try again with different position if overlap
-      i--; // Retry this iteration
+      i--;
     }
   }
 
@@ -223,38 +209,30 @@ const generatePlatforms = (level: number, seed: number): Platform[] => {
 const generateEnemies = (level: number, platforms: Platform[], seed: number): Enemy[] => {
   const enemies: Enemy[] = [];
 
-  // Use seed for consistent random generation
   const rng = (min: number, max: number) => {
     seed = (seed * 9301 + 49297) % 233280;
     const random = seed / 233280;
     return min + random * (max - min);
   };
 
-  // Number of enemies increases with level
   const enemyCount = Math.min(level * 2, 15);
 
-  // Elements to use for enemy generation
   const elements: ElementType[] = ['fire', 'water', 'earth', 'air'];
 
-  // Skip the first (starting) platform to avoid immediate enemies
   const availablePlatforms = platforms.slice(2);
 
   for (let i = 0; i < enemyCount; i++) {
-    if (availablePlatforms.length === 0) break; // No more platforms to place enemies
+    if (availablePlatforms.length === 0) break;
 
-    // Choose a random platform to place the enemy
     const platformIndex = Math.floor(rng(0, availablePlatforms.length));
     const platform = availablePlatforms[platformIndex];
 
-    // Position enemy on the platform
     const xPos = platform.x + rng(20, platform.width - 40);
-    const yPos = platform.y - 30; // 30px above platform
+    const yPos = platform.y - 30;
 
-    // Randomly choose an element
     const elementIndex = Math.floor(rng(0, elements.length));
     const element = elements[elementIndex];
 
-    // Enemy speed increases with level
     const speed = 0.5 + rng(0, level * 0.2);
 
     enemies.push({
@@ -270,14 +248,12 @@ const generateEnemies = (level: number, platforms: Platform[], seed: number): En
       speed: speed
     });
 
-    // Remove platform from available list to avoid too many enemies on one platform
     availablePlatforms.splice(platformIndex, 1);
   }
 
   return enemies;
 };
 
-// Initial platforms
 const initialPlatforms = generatePlatforms(1, Date.now());
 
 const initialGameState: GameState = {
@@ -293,16 +269,15 @@ const initialGameState: GameState = {
   availableElements: ['spirit', 'fire', 'water', 'earth', 'air'],
   nextProjectileId: 1,
   levelProgress: 0,
-  worldSeed: Date.now(), // Use current time as seed for random generation
+  worldSeed: Date.now(),
 };
 
 // Game reducer
 const gameReducer = (state: GameState, action: GameAction): GameState => {
-  console.log("Game reducer:", action.type, action); // Debug log
+  console.log("Game reducer:", action.type, action);
 
   switch (action.type) {
     case 'START_GAME': {
-      // Generate a new seed for this game
       const newSeed = Date.now();
       const newPlatforms = generatePlatforms(1, newSeed);
       const newEnemies = generateEnemies(1, newPlatforms, newSeed);
@@ -315,9 +290,9 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
         worldSeed: newSeed,
         player: {
           ...initialPlayerState,
-          x: 100, // Starting position
-          y: 300, // Starting position
-          onPlatform: true // Start on platform to avoid initial falling
+          x: 100,
+          y: 300,
+          onPlatform: true
         }
       };
     }
@@ -328,7 +303,6 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
     case 'END_GAME':
       return { ...initialGameState };
     case 'RESTART_GAME': {
-      // Generate a new seed for this game
       const newSeed = Date.now();
       const newPlatforms = generatePlatforms(1, newSeed);
       const newEnemies = generateEnemies(1, newPlatforms, newSeed);
@@ -343,9 +317,9 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
         worldSeed: newSeed,
         player: {
           ...initialPlayerState,
-          x: 100, // Starting position
-          y: 300, // Starting position
-          onPlatform: true // Start on platform to avoid initial falling
+          x: 100,
+          y: 300,
+          onPlatform: true
         }
       };
     }
@@ -379,66 +353,70 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
         },
       };
     case 'PLAYER_MOVE_LEFT': {
-      const moveSpeed = state.player.isDucking ? 3 : 5; // Slower when ducking
+      console.log(`PLAYER_MOVE_LEFT: ${action.payload}`);
+      const moveSpeed = state.player.isDucking ? 3 : 5;
       return {
         ...state,
         player: {
           ...state.player,
           isMovingLeft: action.payload,
           velocityX: action.payload ? -moveSpeed : state.player.isMovingRight ? moveSpeed : 0,
+          facingDirection: action.payload ? 'left' : state.player.facingDirection,
         },
       };
     }
     case 'PLAYER_MOVE_RIGHT': {
-      const moveSpeedRight = state.player.isDucking ? 3 : 5; // Slower when ducking
+      console.log(`PLAYER_MOVE_RIGHT: ${action.payload}`);
+      const moveSpeedRight = state.player.isDucking ? 3 : 5;
       return {
         ...state,
         player: {
           ...state.player,
           isMovingRight: action.payload,
           velocityX: action.payload ? moveSpeedRight : state.player.isMovingLeft ? -moveSpeedRight : 0,
+          facingDirection: action.payload ? 'right' : state.player.facingDirection,
         },
       };
     }
-    case 'PLAYER_DUCK':
-      // Adjust height when ducking
+    case 'PLAYER_DUCK': {
+      console.log(`PLAYER_DUCK: ${action.payload}`);
       return {
         ...state,
         player: {
           ...state.player,
           isDucking: action.payload,
-          height: action.payload ? 30 : 50, // Shorter when ducking
-          // Slow down when ducking
+          height: action.payload ? 30 : 50,
           velocityX: action.payload
             ? (state.player.velocityX > 0 ? 2 : (state.player.velocityX < 0 ? -2 : 0))
             : (state.player.isMovingRight ? 5 : (state.player.isMovingLeft ? -5 : 0)),
         },
       };
+    }
     case 'PLAYER_JUMP': {
-      // Only jump if we're not already jumping
-      if (state.player.isJumping || !state.player.onPlatform) return state;
-
-      // Different jump heights for different elements
-      let jumpVelocity = -15; // Default jump velocity
-
-      // Element-specific jump velocities
-      switch (state.player.currentElement) {
-        case 'air':
-          jumpVelocity = -17; // Air jumps higher
-          break;
-        case 'earth':
-          jumpVelocity = -18; // Earth jumps highest but falls fastest
-          break;
-        case 'fire':
-          jumpVelocity = -16; // Fire jumps a bit higher
-          break;
-        case 'water':
-          jumpVelocity = -14; // Water jumps less high but floats
-          break;
-        default:
-          jumpVelocity = -15; // Spirit form is balanced
+      console.log(`PLAYER_JUMP attempt - onPlatform: ${state.player.onPlatform}, isJumping: ${state.player.isJumping}`);
+      if (state.player.isJumping || !state.player.onPlatform) {
+        console.log("Jump rejected - already jumping or not on platform");
+        return state;
       }
 
+      let jumpVelocity = -15;
+      switch (state.player.currentElement) {
+        case 'air':
+          jumpVelocity = -17;
+          break;
+        case 'earth':
+          jumpVelocity = -18;
+          break;
+        case 'fire':
+          jumpVelocity = -16;
+          break;
+        case 'water':
+          jumpVelocity = -14;
+          break;
+        default:
+          jumpVelocity = -15;
+      }
+      console.log(`Jump accepted with velocity: ${jumpVelocity}`);
       return {
         ...state,
         player: {
@@ -450,16 +428,14 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
       };
     }
     case 'PLAYER_LAND': {
-      // Earth element creates a small "shock" when landing from a high jump
       const landingY = action.payload.platformY - state.player.height;
-
       return {
         ...state,
         player: {
           ...state.player,
           isJumping: false,
           velocityY: 0,
-          y: landingY, // Set to platform top minus player height
+          y: landingY,
           onPlatform: true,
         },
       };
@@ -473,9 +449,7 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
         },
       };
     case 'UPDATE_AIM_DIRECTION': {
-      // Calculate the facing direction based on the aim direction
       const facingDirection = action.payload.x >= 0 ? 'right' : 'left';
-
       return {
         ...state,
         player: {
@@ -488,24 +462,18 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
     }
     case 'PLAYER_SHOOT': {
       const now = Date.now();
-
-      // Check if enough time has passed since last shot
       if (now - state.player.lastShootTime < state.player.shootCooldown) {
-        return state; // Still on cooldown
+        return state;
       }
-
-      // Check if enough energy to shoot
       if (state.player.energy < 10) {
-        return state; // Not enough energy
+        return state;
       }
 
-      // Create projectile based on current element
-      const projectileSpeed = 12; // Increased speed for better responsiveness
+      const projectileSpeed = 12;
       let projectileWidth = 10;
       let projectileHeight = 10;
       let projectileDamage = 10;
 
-      // Adjust projectile properties based on element
       switch (state.player.currentElement) {
         case 'fire':
           projectileDamage = 15;
@@ -527,28 +495,22 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
           projectileWidth = 6;
           projectileHeight = 6;
           break;
-        default:
-          // Spirit form is balanced
-          break;
       }
 
-      // Use the aim direction for projectile direction
       const aimLength = Math.sqrt(
         state.player.aimDirectionX * state.player.aimDirectionX +
         state.player.aimDirectionY * state.player.aimDirectionY
       );
 
-      // Normalize the aim direction
       const normalizedX = aimLength > 0 ? state.player.aimDirectionX / aimLength : 1;
       const normalizedY = aimLength > 0 ? state.player.aimDirectionY / aimLength : 0;
 
-      // Create new projectile
       const newProjectile: ProjectileState = {
         id: state.nextProjectileId,
         x: state.player.x + (normalizedX * state.player.width / 2),
         y: state.player.y - state.player.height / 2,
         velocityX: normalizedX * projectileSpeed,
-        velocityY: normalizedY * projectileSpeed, // Add vertical velocity for aiming
+        velocityY: normalizedY * projectileSpeed,
         element: state.player.currentElement,
         damage: projectileDamage,
         width: projectileWidth,
@@ -561,52 +523,44 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
         player: {
           ...state.player,
           lastShootTime: now,
-          energy: state.player.energy - 10, // Consume energy
+          energy: state.player.energy - 10,
         },
         projectiles: [...state.projectiles, newProjectile],
         nextProjectileId: state.nextProjectileId + 1
       };
     }
     case 'UPDATE_PROJECTILES': {
-      // Update position of all projectiles
       const updatedProjectiles = state.projectiles
         .map(projectile => {
           if (!projectile.active) return projectile;
 
-          // Move projectile with both X and Y velocity
           const newX = projectile.x + projectile.velocityX;
           const newY = projectile.y + projectile.velocityY;
 
-          // Check if out of bounds
           if (newX < 0 || newX > 2000 || newY < 0 || newY > 800) {
             return { ...projectile, active: false };
           }
 
-          // Check for collisions with enemies
           let hasCollided = false;
           const updatedEnemies = [...state.enemies];
 
           for (let i = 0; i < updatedEnemies.length; i++) {
             const enemy = updatedEnemies[i];
 
-            // Check collision
             if (
               newX + projectile.width / 2 > enemy.x - enemy.width / 2 &&
               newX - projectile.width / 2 < enemy.x + enemy.width / 2 &&
               newY + projectile.height / 2 > enemy.y - enemy.height &&
               newY - projectile.height / 2 < enemy.y
             ) {
-              // Calculate damage based on elemental advantage/disadvantage
               let damageMultiplier = 1;
 
-              // Elemental interactions
               if (
                 (projectile.element === 'fire' && enemy.element === 'air') ||
                 (projectile.element === 'water' && enemy.element === 'fire') ||
                 (projectile.element === 'earth' && enemy.element === 'water') ||
                 (projectile.element === 'air' && enemy.element === 'earth')
               ) {
-                // Advantage: double damage
                 damageMultiplier = 2;
               } else if (
                 (projectile.element === 'air' && enemy.element === 'fire') ||
@@ -614,27 +568,22 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
                 (projectile.element === 'water' && enemy.element === 'earth') ||
                 (projectile.element === 'earth' && enemy.element === 'air')
               ) {
-                // Disadvantage: half damage
                 damageMultiplier = 0.5;
               } else if (projectile.element === enemy.element) {
-                // Same element: reduced damage
                 damageMultiplier = 0.25;
               }
 
-              // Apply damage
               const damage = projectile.damage * damageMultiplier;
               updatedEnemies[i] = {
                 ...enemy,
                 health: Math.max(0, enemy.health - damage)
               };
 
-              // Deactivate projectile
               hasCollided = true;
               break;
             }
           }
 
-          // Check for collisions with platforms
           for (const platform of state.platforms) {
             if (!platform.canPassThrough) {
               if (
@@ -658,11 +607,9 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
         })
         .filter(projectile => projectile.active);
 
-      // Check for defeated enemies
       const remainingEnemies = state.enemies.filter(enemy => enemy.health > 0);
       const defeatedCount = state.enemies.length - remainingEnemies.length;
 
-      // Award points for defeated enemies
       const scoreIncrease = defeatedCount * 10;
 
       return {
@@ -678,18 +625,15 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
         projectiles: state.projectiles.filter(p => p.id !== action.payload)
       };
     case 'CHANGE_ELEMENT': {
-      // Add some score for changing elements (encourages experimentation)
       let scoreBonus = state.player.currentElement !== action.payload ? 5 : 0;
-
       return {
         ...state,
         score: state.score + scoreBonus,
         player: {
           ...state.player,
           currentElement: action.payload,
-          // Health/energy adjustments for different elements
-          health: state.player.health, // Keep health the same
-          energy: state.player.energy, // Keep energy the same
+          health: state.player.health,
+          energy: state.player.energy
         },
       };
     }
@@ -705,7 +649,6 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
           ...state.player,
           health: Math.max(0, Math.min(state.player.maxHealth, action.payload)),
         },
-        // If health reaches 0, trigger game over
         gameOver: action.payload <= 0,
       };
     case 'UPDATE_ENEMIES': {
@@ -714,7 +657,6 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
         enemies: action.payload
       };
     }
-
     case 'UPDATE_ENERGY':
       return {
         ...state,
@@ -740,16 +682,15 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
         enemies: newEnemies,
         player: {
           ...state.player,
-          x: 100, // Reset to start of level
+          x: 100,
           y: 300,
           velocityX: 0,
           velocityY: 0,
           onPlatform: true,
-          // Restore some health/energy as reward
           health: Math.min(state.player.maxHealth, state.player.health + 20),
           energy: Math.min(state.player.maxEnergy, state.player.energy + 50),
         },
-        projectiles: [], // Clear projectiles
+        projectiles: [],
         levelProgress: 0,
       };
     }
@@ -775,12 +716,10 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
           : enemy
       );
 
-      // Check if any enemies were defeated
       const previousCount = state.enemies.length;
       const remainingEnemies = updatedEnemies.filter(enemy => enemy.health > 0);
       const defeatedCount = previousCount - remainingEnemies.length;
 
-      // Award points for defeated enemies
       const scoreIncrease = defeatedCount * 10;
 
       return {
@@ -799,7 +738,6 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
   }
 };
 
-// Context
 interface GameContextType {
   state: GameState;
   dispatch: React.Dispatch<GameAction>;
@@ -809,11 +747,9 @@ interface GameContextType {
 
 const GameContext = createContext<GameContextType | undefined>(undefined);
 
-// Provider component
 export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [state, dispatch] = useReducer(gameReducer, initialGameState);
 
-  // Debug state changes
   useEffect(() => {
     // console.log("Game state updated:", state);
   }, [state]);
@@ -834,7 +770,6 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     air: 'Air',
   };
 
-  // Handle keyboard input
   useEffect(() => {
     if (!state.isPlaying || state.isPaused) return;
 
@@ -916,7 +851,6 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   }, [state.isPlaying, state.isPaused]);
 
-  // Update projectiles and check for collisions
   useEffect(() => {
     if (!state.isPlaying || state.isPaused || state.gameOver) return;
 
@@ -929,11 +863,9 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => clearInterval(projectileInterval);
   }, [state.isPlaying, state.isPaused, state.gameOver, state.projectiles.length]);
 
-  // Check if player has progressed enough to advance level
   useEffect(() => {
     if (!state.isPlaying || state.isPaused || state.gameOver) return;
 
-    // If player has moved far enough to the right, advance level
     if (state.player.x > 1500) {
       dispatch({ type: 'ADVANCE_LEVEL' });
     }
@@ -946,7 +878,6 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   );
 };
 
-// Custom hook for using the game context
 export const useGame = (): GameContextType => {
   const context = useContext(GameContext);
   if (!context) {

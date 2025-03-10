@@ -80,7 +80,7 @@ const Projectile = ({ projectile }) => {
   );
 };
 
-// Element selection UI
+// Fixed Element selection UI - improved click targets with better pointer events handling
 const ElementSelection = () => {
   const { state, dispatch, elementColors, elementNames } = useGame();
 
@@ -89,22 +89,26 @@ const ElementSelection = () => {
       {state.availableElements.map((element) => (
         <button
           key={element}
-          className={`w-12 h-12 rounded-full flex items-center justify-center transition-all ${state.player.currentElement === element
+          className={`w-12 h-12 rounded-full flex items-center justify-center transition-all pointer-events-auto ${
+            state.player.currentElement === element
               ? 'scale-110 border-2 border-white'
               : 'opacity-70'
-            }`}
+          }`}
           style={{
             backgroundColor: elementColors[element],
             boxShadow: state.player.currentElement === element
               ? `0 0 10px 2px ${elementColors[element]}`
               : 'none'
           }}
-          onClick={() => dispatch({ type: 'CHANGE_ELEMENT', payload: element })}
+          onClick={() => {
+            console.log(`Element button clicked: ${element}`);
+            dispatch({ type: 'CHANGE_ELEMENT', payload: element });
+          }}
         >
           <span className="text-sm font-bold text-white">
             {elementNames[element].charAt(0)}
           </span>
-          <div className="absolute -bottom-5 text-xs whitespace-nowrap text-center text-white">
+          <div className="absolute -bottom-5 text-xs whitespace-nowrap text-center text-white pointer-events-none">
             {elementNames[element]}
           </div>
         </button>
@@ -189,46 +193,92 @@ const GameCanvas: React.FC = () => {
   const handleShoot = () => {
     dispatch({ type: 'PLAYER_SHOOT' });
   };
+
+  // Fixed keyboard event handling - with debug logs and improved event handling
   useEffect(() => {
     if (!isPlaying || isPaused) return;
 
+    console.log("Setting up keyboard controls");
+
     const handleKeyDown = (e: KeyboardEvent) => {
+      console.log(`Key pressed: ${e.key}`);
+      
       switch (e.key.toLowerCase()) {
         case 'w':
+        case 'arrowup':
+          console.log("Jump action triggered");
           dispatch({ type: 'PLAYER_JUMP' });
           break;
         case 'a':
+        case 'arrowleft':
+          console.log("Move left action triggered");
           dispatch({ type: 'PLAYER_MOVE_LEFT', payload: true });
           break;
         case 'd':
+        case 'arrowright':
+          console.log("Move right action triggered");
           dispatch({ type: 'PLAYER_MOVE_RIGHT', payload: true });
           break;
         case 's':
+        case 'arrowdown':
+          console.log("Duck action triggered");
           dispatch({ type: 'PLAYER_DUCK', payload: true });
+          break;
+        case ' ':
+          console.log("Jump/Shoot action triggered");
+          dispatch({ type: 'PLAYER_JUMP' });
+          dispatch({ type: 'PLAYER_SHOOT' });
+          break;
+        case '1':
+          dispatch({ type: 'CHANGE_ELEMENT', payload: 'spirit' });
+          break;
+        case '2':
+          dispatch({ type: 'CHANGE_ELEMENT', payload: 'fire' });
+          break;
+        case '3':
+          dispatch({ type: 'CHANGE_ELEMENT', payload: 'water' });
+          break;
+        case '4':
+          dispatch({ type: 'CHANGE_ELEMENT', payload: 'earth' });
+          break;
+        case '5':
+          dispatch({ type: 'CHANGE_ELEMENT', payload: 'air' });
+          break;
+        case 'escape':
+          dispatch({ type: 'PAUSE_GAME' });
+          break;
+        case 'f':
+          dispatch({ type: 'PLAYER_SHOOT' });
           break;
       }
     };
 
     const handleKeyUp = (e: KeyboardEvent) => {
+      console.log(`Key released: ${e.key}`);
+      
       switch (e.key.toLowerCase()) {
         case 'a':
+        case 'arrowleft':
           dispatch({ type: 'PLAYER_MOVE_LEFT', payload: false });
           break;
         case 'd':
+        case 'arrowright':
           dispatch({ type: 'PLAYER_MOVE_RIGHT', payload: false });
           break;
         case 's':
+        case 'arrowdown':
           dispatch({ type: 'PLAYER_DUCK', payload: false });
           break;
       }
     };
 
-    window.addEventListener('keydown', handleKeyDown);
-    window.addEventListener('keyup', handleKeyUp);
+    // Use document for keyboard events instead of window
+    document.addEventListener('keydown', handleKeyDown);
+    document.addEventListener('keyup', handleKeyUp);
 
     return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-      window.removeEventListener('keyup', handleKeyUp);
+      document.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener('keyup', handleKeyUp);
     };
   }, [isPlaying, isPaused, dispatch]);
 
@@ -346,6 +396,12 @@ const GameCanvas: React.FC = () => {
         width: '100%',
         height: '100%'
       }}
+      // Add tabIndex to make div focusable for keyboard events
+      tabIndex={0}
+      // Focus the container when clicked
+      onClick={() => gameContainerRef.current?.focus()}
+      // Focus the container when the game starts
+      onFocus={() => console.log("Game container focused")}
     >
       {/* Dynamic background elements based on current element */}
       <div

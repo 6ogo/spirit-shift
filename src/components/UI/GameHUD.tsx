@@ -1,3 +1,4 @@
+
 import React, { useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGame, ElementType } from '@/contexts/GameContext';
@@ -20,7 +21,12 @@ const GameHUD: React.FC = () => {
           backgroundColor: elementColors[element],
           boxShadow: isActive ? `0 0 10px 2px ${elementColors[element]}` : 'none'
         }}
-        onClick={() => dispatch({ type: 'CHANGE_ELEMENT', payload: element })}
+        onClick={(e) => {
+          // Stop propagation to prevent any parent handlers from firing
+          e.stopPropagation();
+          console.log("Element selected from HUD:", element);
+          dispatch({ type: 'CHANGE_ELEMENT', payload: element });
+        }}
       >
         <span className="text-sm font-bold">
           {elementNames[element].charAt(0)}
@@ -29,12 +35,12 @@ const GameHUD: React.FC = () => {
         {isActive && (
           <motion.div
             layoutId="active-element"
-            className="absolute inset-0 rounded-full border-2 border-white"
+            className="absolute inset-0 rounded-full border-2 border-white pointer-events-none"
             transition={{ type: 'spring', stiffness: 300, damping: 30 }}
           />
         )}
         
-        <div className="absolute -bottom-5 text-xs whitespace-nowrap text-center opacity-80">
+        <div className="absolute -bottom-5 text-xs whitespace-nowrap text-center opacity-80 pointer-events-none">
           {elementNames[element]}
         </div>
       </motion.div>
@@ -83,7 +89,7 @@ const GameHUD: React.FC = () => {
   };
   
   return (
-    <div className="absolute inset-x-0 p-4 z-10 pointer-events-none">
+    <div className="absolute inset-x-0 p-4 z-10">
       <div className="max-w-4xl mx-auto flex flex-col space-y-4">
         {/* Top bar with score and level */}
         <div className="flex justify-between items-center">
@@ -108,7 +114,10 @@ const GameHUD: React.FC = () => {
             animate={{ opacity: 1, scale: 1 }}
             whileHover={{ scale: 1.05, backgroundColor: "rgba(255, 255, 255, 0.15)" }}
             whileTap={{ scale: 0.95 }}
-            onClick={() => dispatch({ type: 'PAUSE_GAME' })}
+            onClick={(e) => {
+              e.stopPropagation();
+              dispatch({ type: 'PAUSE_GAME' });
+            }}
             className="glass-panel px-4 py-2 rounded-lg pointer-events-auto hover:bg-white/10 transition-colors shadow-lg border border-white/10"
           >
             <div className="text-xl font-bold tracking-wider">PAUSE</div>
