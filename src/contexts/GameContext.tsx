@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
 
 // Types
@@ -110,9 +109,19 @@ const initialGameState: GameState = {
 
 // Game reducer
 const gameReducer = (state: GameState, action: GameAction): GameState => {
+  console.log("Game reducer:", action.type, action); // Debug log
+  
   switch (action.type) {
     case 'START_GAME':
-      return { ...initialGameState, isPlaying: true };
+      console.log("Starting game, setting isPlaying to true");
+      return { 
+        ...initialGameState, 
+        isPlaying: true, 
+        player: {
+          ...initialPlayerState,
+          onPlatform: true // Start on platform to avoid initial falling
+        }
+      };
     case 'PAUSE_GAME':
       return { ...state, isPaused: true };
     case 'RESUME_GAME':
@@ -124,7 +133,11 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
         ...initialGameState, 
         isPlaying: true,
         score: 0, 
-        level: 1
+        level: 1,
+        player: {
+          ...initialPlayerState,
+          onPlatform: true // Start on platform to avoid initial falling
+        }
       };
     case 'GAME_OVER':
       return { ...state, gameOver: true };
@@ -306,6 +319,11 @@ const GameContext = createContext<GameContextType | undefined>(undefined);
 // Provider component
 export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [state, dispatch] = useReducer(gameReducer, initialGameState);
+  
+  // Debug state changes
+  useEffect(() => {
+    console.log("Game state updated:", state);
+  }, [state]);
   
   const elementColors: Record<ElementType, string> = {
     spirit: '#2A2A2A',
