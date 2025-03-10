@@ -1,5 +1,6 @@
+
 import React, { useState, useEffect, useRef } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useGame } from '@/contexts/GameContext';
 import { useGameLoop } from '@/hooks/useGameLoop';
 import Player from './Player';
@@ -80,16 +81,16 @@ const Projectile = ({ projectile }) => {
   );
 };
 
-// Fixed Element selection UI - improved click targets with better pointer events handling
+// FIX: Updated Element selection UI to appear at the bottom and improve clickability
 const ElementSelection = () => {
   const { state, dispatch, elementColors, elementNames } = useGame();
 
   return (
-    <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-20 flex space-x-4">
+    <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-20 flex space-x-6">
       {state.availableElements.map((element) => (
         <button
           key={element}
-          className={`w-12 h-12 rounded-full flex items-center justify-center transition-all pointer-events-auto ${
+          className={`w-16 h-16 rounded-full flex items-center justify-center transition-all pointer-events-auto ${
             state.player.currentElement === element
               ? 'scale-110 border-2 border-white'
               : 'opacity-70'
@@ -105,10 +106,10 @@ const ElementSelection = () => {
             dispatch({ type: 'CHANGE_ELEMENT', payload: element });
           }}
         >
-          <span className="text-sm font-bold text-white">
+          <span className="text-lg font-bold text-white">
             {elementNames[element].charAt(0)}
           </span>
-          <div className="absolute -bottom-5 text-xs whitespace-nowrap text-center text-white pointer-events-none">
+          <div className="absolute -bottom-6 text-sm whitespace-nowrap text-center text-white pointer-events-none">
             {elementNames[element]}
           </div>
         </button>
@@ -119,9 +120,10 @@ const ElementSelection = () => {
 
 const GameCanvas: React.FC = () => {
   const { state, dispatch } = useGame();
-  const { isPlaying, isPaused } = state;
+  const { isPlaying, isPaused, isTutorialLevel } = state;
   const gameContainerRef = useRef<HTMLDivElement>(null);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+  const [tutorialVisible, setTutorialVisible] = useState(true);
 
   // Initialize game loop
   useGameLoop();
@@ -144,6 +146,15 @@ const GameCanvas: React.FC = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  // Hide tutorial when moving right
+  useEffect(() => {
+    if (state.player.x > 300 && tutorialVisible) {
+      setTutorialVisible(false);
+    } else if (state.player.x < 200 && !tutorialVisible && isTutorialLevel) {
+      setTutorialVisible(true);
+    }
+  }, [state.player.x, tutorialVisible, isTutorialLevel]);
+
   // Mouse tracking for aiming
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
@@ -155,8 +166,18 @@ const GameCanvas: React.FC = () => {
         // Update mouse position
         setMousePosition({ x, y });
 
-        // Calculate direction vector from player to mouse
-        const dirX = x - (windowSize.width / 2); // Assuming player is centered
+        // FIX: Calculate direction vector from player to mouse
+        // Account for camera offset to get accurate aiming
+        const cameraOffsetX = Math.min(
+          Math.max(windowSize.width / 2 - state.player.x, -800 + windowSize.width / 2),
+          0
+        );
+        
+        // Get the actual player position on screen
+        const playerScreenX = state.player.x + cameraOffsetX;
+        
+        // Calculate aim direction from player position to mouse
+        const dirX = x - playerScreenX;
         const dirY = y - state.player.y;
 
         // Update aim direction in game state
@@ -187,7 +208,7 @@ const GameCanvas: React.FC = () => {
         gameContainerRef.current.removeEventListener('mousedown', handleMouseClick);
       }
     };
-  }, [isPlaying, isPaused, state.player.x, state.player.y, windowSize]);
+  }, [isPlaying, isPaused, state.player.x, state.player.y, windowSize, dispatch]);
 
   // Add shoot button event handler
   const handleShoot = () => {
@@ -355,8 +376,13 @@ const GameCanvas: React.FC = () => {
 
   // Controls helper component that shows key instructions
   const ControlsHelper = () => (
-    isPlaying && !isPaused ? (
-      <div className="absolute top-4 right-4 text-white text-sm bg-black/50 p-3 rounded-md backdrop-blur-sm z-10 border border-white/10">
+    tutorialVisible && isPlaying && !isPaused ? (
+      <motion.div 
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="absolute top-4 right-4 text-white text-sm bg-black/50 p-3 rounded-md backdrop-blur-sm z-10 border border-white/10"
+      >
         <h3 className="font-bold mb-2">Controls:</h3>
         <div className="grid grid-cols-2 gap-x-4 gap-y-1">
           <div>W / Space / ↑</div><div>Jump</div>
@@ -364,29 +390,54 @@ const GameCanvas: React.FC = () => {
           <div>D / →</div><div>Move Right</div>
           <div>S / ↓</div><div>Duck</div>
           <div>1-5</div><div>Change Element</div>
-          <div>F / Space</div><div>Shoot</div>
+          <div>F / Left Click</div><div>Shoot</div>
           <div>ESC</div><div>Pause</div>
         </div>
-      </div>
+      </motion.div>
     ) : null
   );
 
   // Element tutorial shown at start
   const ElementTutorial = () => (
-    state.level === 1 && !isPaused ? (
-      <div className="absolute bottom-20 left-1/2 -translate-x-1/2 text-white text-center z-10 p-3 bg-black/50 rounded-md backdrop-blur-sm max-w-lg">
-        <h3 className="font-bold mb-2">Element Powers</h3>
-        <p className="mb-2">Each element has unique abilities and strengths against enemies:</p>
-        <div className="grid grid-cols-2 gap-2 text-xs">
+    tutorialVisible && state.level === 1 && !isPaused ? (
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: -20 }}
+        transition={{ duration: 0.5 }}
+        className="absolute bottom-32 left-1/2 -translate-x-1/2 text-white text-center z-10 p-4 bg-black/60 rounded-md backdrop-blur-sm max-w-lg"
+      >
+        <h3 className="font-bold text-xl mb-3">Element Powers</h3>
+        <p className="mb-3">Each element has unique abilities and strengths against enemies:</p>
+        <div className="grid grid-cols-2 gap-3 text-sm mb-4">
           <div className="text-left"><span className="font-bold text-red-400">Fire:</span> Strong against Air, weak to Water</div>
           <div className="text-left"><span className="font-bold text-blue-400">Water:</span> Strong against Fire, weak to Earth</div>
           <div className="text-left"><span className="font-bold text-green-400">Earth:</span> Strong against Water, weak to Air</div>
           <div className="text-left"><span className="font-bold text-purple-400">Air:</span> Strong against Earth, weak to Fire</div>
         </div>
-        <p className="mt-2 text-xs opacity-70">Press the buttons below or number keys 1-5 to switch elements</p>
-      </div>
+        <p className="mt-3 text-sm opacity-70">Press the buttons below or number keys 1-5 to switch elements</p>
+        <p className="mt-2 text-sm text-yellow-300">Move right to continue to the first level →</p>
+      </motion.div>
     ) : null
   );
+
+  // FIX: Render spirits at the bottom in the tutorial level
+  const renderTutorialSpirits = () => {
+    if (!isTutorialLevel) return null;
+    
+    return (
+      <div className="absolute bottom-40 left-1/2 -translate-x-1/2 flex space-x-16">
+        {state.availableElements.map((element, index) => (
+          <Spirit
+            key={`spirit-intro-${element}`}
+            element={element}
+            x={-100 + (index * 100)} // Relative positioning
+            y={480} // Near the bottom
+          />
+        ))}
+      </div>
+    );
+  };
 
   return (
     <div
@@ -454,19 +505,8 @@ const GameCanvas: React.FC = () => {
             />
           ))}
 
-          {/* Spirits for selection (only show on the first level) */}
-          {state.level === 1 && (
-            <div className="absolute top-100 left-120 flex space-x-20 items-center">
-              {state.availableElements.map((element, index) => (
-                <Spirit
-                  key={`spirit-intro-${element}`}
-                  element={element}
-                  x={200 + (index * 120)}
-                  y={150}
-                />
-              ))}
-            </div>
-          )}
+          {/* Tutorial spirits (only show in tutorial level) */}
+          {renderTutorialSpirits()}
 
           {/* Enemies */}
           {state.enemies.map((enemy) => (
@@ -486,8 +526,16 @@ const GameCanvas: React.FC = () => {
       {/* Game UI layers */}
       <GameHUD />
       <ElementSelection />
-      <ElementTutorial />
-      <ControlsHelper />
+      
+      <AnimatePresence>
+        {tutorialVisible && (
+          <>
+            <ElementTutorial />
+            <ControlsHelper />
+          </>
+        )}
+      </AnimatePresence>
+      
       <PauseScreen />
       <GameOverScreen />
 

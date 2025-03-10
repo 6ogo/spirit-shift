@@ -7,46 +7,9 @@ const GameHUD: React.FC = () => {
   const { state, dispatch, elementColors, elementNames } = useGame();
   const { player, score } = state;
   
-  // Element selection icons
-  const ElementIcon: React.FC<{ element: ElementType, index: number }> = ({ element, index }) => {
-    const isActive = player.currentElement === element;
-    
-    return (
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: index * 0.1 }}
-        className={`relative w-12 h-12 rounded-full flex items-center justify-center ${isActive ? 'scale-110 z-10' : 'opacity-70'} transition-all button-hover cursor-pointer`}
-        style={{ 
-          backgroundColor: elementColors[element],
-          boxShadow: isActive ? `0 0 10px 2px ${elementColors[element]}` : 'none'
-        }}
-        onClick={(e) => {
-          // Stop propagation to prevent any parent handlers from firing
-          e.stopPropagation();
-          console.log("Element selected from HUD:", element);
-          dispatch({ type: 'CHANGE_ELEMENT', payload: element });
-        }}
-      >
-        <span className="text-sm font-bold">
-          {elementNames[element].charAt(0)}
-        </span>
-        
-        {isActive && (
-          <motion.div
-            layoutId="active-element"
-            className="absolute inset-0 rounded-full border-2 border-white pointer-events-none"
-            transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-          />
-        )}
-        
-        <div className="absolute -bottom-5 text-xs whitespace-nowrap text-center opacity-80 pointer-events-none">
-          {elementNames[element]}
-        </div>
-      </motion.div>
-    );
-  };
-  
+  // Element selection icons have been moved to the GameCanvas component
+  // to ensure they're properly positioned at the bottom
+
   // Progress bar component
   const ProgressBar: React.FC<{ 
     value: number, 
@@ -153,17 +116,6 @@ const GameHUD: React.FC = () => {
             animate={true}
           />
         </div>
-        
-        {/* Element selection */}
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="flex justify-center space-x-6 py-2 pointer-events-auto"
-        >
-          {state.availableElements.map((element, index) => (
-            <ElementIcon key={element} element={element} index={index} />
-          ))}
-        </motion.div>
         
         {/* Element power description */}
         <AnimatePresence mode="wait">

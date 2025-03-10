@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
 
 // Types
@@ -77,6 +78,7 @@ export interface GameState {
   nextProjectileId: number;
   levelProgress: number;
   worldSeed: number;
+  isTutorialLevel: boolean; // Added to track if we're on the tutorial level
 }
 
 type GameAction =
@@ -106,6 +108,7 @@ type GameAction =
   | { type: 'ADVANCE_LEVEL' }
   | { type: 'GENERATE_LEVEL' }
   | { type: 'ADD_ENEMY', payload: Enemy }
+  | { type: 'UPDATE_ENEMY', payload: Enemy }  // Added for updating individual enemies
   | { type: 'DAMAGE_ENEMY', payload: { id: number, damage: number } }
   | { type: 'REMOVE_ENEMY', payload: number }
   | { type: 'UPDATE_PROJECTILES' }
@@ -114,7 +117,7 @@ type GameAction =
 // Initial state
 const initialPlayerState: PlayerState = {
   x: 100,
-  y: 300,
+  y: 450, // Moved down to spawn at the bottom
   velocityX: 0,
   velocityY: 0,
   width: 40,
@@ -137,6 +140,13 @@ const initialPlayerState: PlayerState = {
   facingDirection: 'right',
 };
 
+// Helper function to generate tutorial level with no platforms except floor
+const generateTutorialLevel = (): Platform[] => {
+  return [
+    { x: 0, y: 500, width: 2000, height: 30, element: 'spirit', canPassThrough: false },
+  ];
+};
+
 // Helper function to generate random platforms
 const generatePlatforms = (level: number, seed: number): Platform[] => {
   const rng = (min: number, max: number) => {
@@ -148,6 +158,11 @@ const generatePlatforms = (level: number, seed: number): Platform[] => {
   const platforms: Platform[] = [
     { x: 0, y: 500, width: 2000, height: 30, element: 'spirit', canPassThrough: false },
   ];
+
+  // Skip adding other platforms for level 1 (tutorial)
+  if (level === 1) {
+    return platforms;
+  }
 
   platforms.push({
     x: 50,
@@ -207,6 +222,11 @@ const generatePlatforms = (level: number, seed: number): Platform[] => {
 
 // Helper function to generate enemies based on level
 const generateEnemies = (level: number, platforms: Platform[], seed: number): Enemy[] => {
+  // No enemies in tutorial level
+  if (level === 1) {
+    return [];
+  }
+  
   const enemies: Enemy[] = [];
 
   const rng = (min: number, max: number) => {
@@ -254,7 +274,7 @@ const generateEnemies = (level: number, platforms: Platform[], seed: number): En
   return enemies;
 };
 
-const initialPlatforms = generatePlatforms(1, Date.now());
+const tutorialPlatforms = generateTutorialLevel();
 
 const initialGameState: GameState = {
   isPlaying: false,
@@ -263,13 +283,14 @@ const initialGameState: GameState = {
   score: 0,
   level: 1,
   player: initialPlayerState,
-  platforms: initialPlatforms,
+  platforms: tutorialPlatforms,
   enemies: [],
   projectiles: [],
   availableElements: ['spirit', 'fire', 'water', 'earth', 'air'],
   nextProjectileId: 1,
   levelProgress: 0,
   worldSeed: Date.now(),
+  isTutorialLevel: true,
 };
 
 // Game reducer
@@ -279,19 +300,18 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
   switch (action.type) {
     case 'START_GAME': {
       const newSeed = Date.now();
-      const newPlatforms = generatePlatforms(1, newSeed);
-      const newEnemies = generateEnemies(1, newPlatforms, newSeed);
-
+      
       return {
         ...initialGameState,
         isPlaying: true,
-        platforms: newPlatforms,
-        enemies: newEnemies,
+        platforms: tutorialPlatforms,
+        enemies: [],
         worldSeed: newSeed,
+        isTutorialLevel: true,
         player: {
           ...initialPlayerState,
           x: 100,
-          y: 300,
+          y: 450,
           onPlatform: true
         }
       };
@@ -304,21 +324,20 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
       return { ...initialGameState };
     case 'RESTART_GAME': {
       const newSeed = Date.now();
-      const newPlatforms = generatePlatforms(1, newSeed);
-      const newEnemies = generateEnemies(1, newPlatforms, newSeed);
-
+      
       return {
         ...initialGameState,
         isPlaying: true,
         score: 0,
         level: 1,
-        platforms: newPlatforms,
-        enemies: newEnemies,
+        platforms: tutorialPlatforms,
+        enemies: [],
         worldSeed: newSeed,
+        isTutorialLevel: true,
         player: {
           ...initialPlayerState,
           x: 100,
-          y: 300,
+          y: 450,
           onPlatform: true
         }
       };
@@ -497,18 +516,35 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
           break;
       }
 
+      // FIX: Calculate proper aim direction for projectiles
       const aimLength = Math.sqrt(
         state.player.aimDirectionX * state.player.aimDirectionX +
         state.player.aimDirectionY * state.player.aimDirectionY
       );
 
-      const normalizedX = aimLength > 0 ? state.player.aimDirectionX / aimLength : 1;
-      const normalizedY = aimLength > 0 ? state.player.aimDirectionY / aimLength : 0;
+      // If aim length is too small, default to shooting in the direction the player is facing
+      let normalizedX = 0;
+      let normalizedY = 0;
+      
+      if (aimLength > 0.1) {
+        normalizedX = state.player.aimDirectionX / aimLength;
+        normalizedY = state.player.aimDirectionY / aimLength;
+      } else {
+        normalizedX = state.player.facingDirection === 'right' ? 1 : -1;
+        normalizedY = 0;
+      }
+
+      console.log("Shooting projectile with direction:", { 
+        aimX: state.player.aimDirectionX, 
+        aimY: state.player.aimDirectionY,
+        normalizedX, 
+        normalizedY
+      });
 
       const newProjectile: ProjectileState = {
         id: state.nextProjectileId,
         x: state.player.x + (normalizedX * state.player.width / 2),
-        y: state.player.y - state.player.height / 2,
+        y: state.player.y - state.player.height / 2, // Adjust to shoot from center of player
         velocityX: normalizedX * projectileSpeed,
         velocityY: normalizedY * projectileSpeed,
         element: state.player.currentElement,
@@ -657,6 +693,17 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
         enemies: action.payload
       };
     }
+    case 'UPDATE_ENEMY': {
+      // FIX: New reducer case to update a single enemy
+      const updatedEnemies = state.enemies.map(enemy => 
+        enemy.id === action.payload.id ? action.payload : enemy
+      );
+      
+      return {
+        ...state,
+        enemies: updatedEnemies
+      };
+    }
     case 'UPDATE_ENERGY':
       return {
         ...state,
@@ -692,6 +739,7 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
         },
         projectiles: [],
         levelProgress: 0,
+        isTutorialLevel: false,
       };
     }
     case 'GENERATE_LEVEL': {
@@ -842,12 +890,13 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     };
 
-    window.addEventListener('keydown', handleKeyDown);
-    window.addEventListener('keyup', handleKeyUp);
+    // Using document for keyboard events for better reliability
+    document.addEventListener('keydown', handleKeyDown);
+    document.addEventListener('keyup', handleKeyUp);
 
     return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-      window.removeEventListener('keyup', handleKeyUp);
+      document.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener('keyup', handleKeyUp);
     };
   }, [state.isPlaying, state.isPaused]);
 
@@ -866,10 +915,15 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     if (!state.isPlaying || state.isPaused || state.gameOver) return;
 
-    if (state.player.x > 1500) {
+    // If player moves far enough to the right and it's the tutorial level
+    if (state.isTutorialLevel && state.player.x > 800) {
+      dispatch({ type: 'ADVANCE_LEVEL' });
+    } 
+    // For other levels
+    else if (!state.isTutorialLevel && state.player.x > 1500) {
       dispatch({ type: 'ADVANCE_LEVEL' });
     }
-  }, [state.isPlaying, state.isPaused, state.gameOver, state.player.x]);
+  }, [state.isPlaying, state.isPaused, state.gameOver, state.player.x, state.isTutorialLevel]);
 
   return (
     <GameContext.Provider value={{ state, dispatch, elementColors, elementNames }}>

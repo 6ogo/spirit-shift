@@ -1,3 +1,4 @@
+
 import { useEffect, useRef } from 'react';
 import { useGame } from '@/contexts/GameContext';
 import { Platform } from '@/contexts/GameContext';
@@ -103,8 +104,8 @@ export const useGameLoop = ({ fps = 60 }: GameLoopProps = {}) => {
   }
 
   const updateGameState = (deltaTime: number) => {
-    // Debug movement speed - ensure it's not too slow to notice
-    // console.log("Delta time:", deltaTime, "Movement speed:", state.player.velocityX * deltaTime * 60);
+    // Debug movement speed
+    console.log("Delta time:", deltaTime, "Movement speed:", state.player.velocityX * deltaTime * 60);
 
     // Gravity effect - adjusted for deltaTime
     const gravity = 0.8 * 60 * deltaTime;
@@ -117,28 +118,26 @@ export const useGameLoop = ({ fps = 60 }: GameLoopProps = {}) => {
     let playerWidth = state.player.width;
     let playerHeight = state.player.height;
 
-    // IMPORTANT: Force a minimum velocity when moving to ensure movement is visible
-    // This fixes cases where deltaTime is so small that movement isn't apparent
+    // FIX: Apply movement based on player's movement state flags
+    // This ensures the character actually moves when keys are pressed
     if (state.player.isMovingLeft) {
-      const moveSpeed = state.player.isDucking ? 3 : 5; // Slower when ducking
-      velocityX = -moveSpeed;
+      // Apply a consistent movement speed when moving left
+      velocityX = state.player.isDucking ? -3 : -5;
+      console.log("Moving left with velocity:", velocityX);
     } else if (state.player.isMovingRight) {
-      const moveSpeed = state.player.isDucking ? 3 : 5; // Slower when ducking
-      velocityX = moveSpeed;
+      // Apply a consistent movement speed when moving right
+      velocityX = state.player.isDucking ? 3 : 5;
+      console.log("Moving right with velocity:", velocityX);
+    } else {
+      // When not moving, ensure velocity is zero
+      velocityX = 0;
     }
 
-    // Apply horizontal movement - apply a minimum movement to ensure it's visible
-    const minMovement = 3; // Minimum pixels to move per frame
-    if (velocityX > 0) {
-      playerX += Math.max(velocityX * deltaTime * 60, minMovement);
-    } else if (velocityX < 0) {
-      playerX += Math.min(velocityX * deltaTime * 60, -minMovement);
-    }
-
-    // Debug output if position hasn't changed significantly
-    if (Math.abs(playerX - lastPositionRef.current.x) < 0.01 && Math.abs(velocityX) > 0) {
-      console.warn("Player not moving despite velocity:", velocityX);
-    }
+    // Apply horizontal movement
+    playerX += velocityX * 60 * deltaTime;
+    
+    // Log position changes for debugging
+    console.log("Player position updated:", { oldX: state.player.x, newX: playerX, velocityX });
 
     // Update last position reference
     lastPositionRef.current = { x: playerX, y: playerY };
@@ -302,22 +301,23 @@ export const useGameLoop = ({ fps = 60 }: GameLoopProps = {}) => {
         payload: state.player.health + 0.01 // Very slow health regen
       });
     }
-    // Enemy movement logic
+    
+    // FIX: Update projectiles with proper direction and movement
+    if (state.projectiles.length > 0) {
+      dispatch({ type: 'UPDATE_PROJECTILES' });
+    }
+    
+    // FIX: Enemy movement logic - ensure enemies actually move
     state.enemies.forEach((enemy, index) => {
       // Calculate distance to player
       const distanceToPlayer = Math.abs(enemy.x - state.player.x);
 
       // Only move if within a certain range (enemy sight)
       if (distanceToPlayer < 400) {
+        console.log("Enemy in range, distance:", distanceToPlayer);
+        
         // Determine direction to player
         const directionToPlayer = enemy.x < state.player.x ? 'right' : 'left';
-
-        // Update enemy direction
-        let updatedEnemies = [...state.enemies];
-        updatedEnemies[index] = {
-          ...enemy,
-          direction: directionToPlayer
-        };
 
         // Calculate new x position
         let moveSpeed = enemy.speed * deltaTime * 60;
@@ -331,7 +331,7 @@ export const useGameLoop = ({ fps = 60 }: GameLoopProps = {}) => {
 
         // Check for side collisions with platforms and check if there's ground ahead
         for (const platform of state.platforms) {
-          // Check horizontal collision
+          // Check if enemy is at the same height as platform
           if (
             enemy.y >= platform.y - enemy.height &&
             enemy.y <= platform.y + platform.height
@@ -364,25 +364,18 @@ export const useGameLoop = ({ fps = 60 }: GameLoopProps = {}) => {
           }
         }
 
-        // Don't move if would hit a platform from the side or would fall off
         if (canMove && !wouldFall) {
-          updatedEnemies[index] = {
-            ...updatedEnemies[index],
-            x: newX
+          // FIX: Create updated enemy with proper position and direction
+          const updatedEnemy = {
+            ...enemy,
+            x: newX,
+            direction: directionToPlayer
           };
-        }
-
-        // Update enemies state
-        if (canMove) {
+          
+          // FIX: Dispatch to update enemy state
           dispatch({
-            type: 'ADD_ENEMY',
-            payload: updatedEnemies[index]
-          });
-
-          // Remove old enemy
-          dispatch({
-            type: 'REMOVE_ENEMY',
-            payload: enemy.id
+            type: 'UPDATE_ENEMY',
+            payload: updatedEnemy
           });
         }
       }
