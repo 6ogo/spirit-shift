@@ -116,6 +116,7 @@
   .text-gradient {
     @apply font-bold;
     background: linear-gradient(to right, #ffffff, #b3ffe0);
+    background-clip: text;
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     text-shadow: 0 0 10px rgba(0, 255, 200, 0.3);
@@ -168,4 +169,34 @@
     0% { opacity: 1; transform: scale(1); }
     100% { opacity: 0; transform: scale(0); }
   }
+}
+
+/* Add these animation fixes to index.css in the animation section */
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-6px); }
+}
+
+@keyframes pulse-subtle {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.9; }
+}
+
+@keyframes elemental-glow {
+  0% { box-shadow: 0 0 5px 2px var(--glow-color); }
+  50% { box-shadow: 0 0 10px 3px var(--glow-color); }
+  100% { box-shadow: 0 0 5px 2px var(--glow-color); }
+}
+
+.animate-float {
+  animation: float 4s ease-in-out infinite;
+}
+
+.animate-pulse-subtle {
+  animation: pulse-subtle 3s ease-in-out infinite;
+}
+
+.animate-elemental-glow {
+  animation: elemental-glow 3s ease-in-out infinite;
 }
