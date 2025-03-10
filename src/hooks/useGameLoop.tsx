@@ -133,16 +133,13 @@ export const useGameLoop = ({ fps = 60 }: GameLoopProps = {}) => {
     let playerWidth = state.player.width;
     let playerHeight = state.player.height;
 
-    // Apply movement based on player's movement state flags
+    // Apply movement based on player's movement flags
     if (state.player.isMovingLeft) {
-      // Apply a consistent movement speed when moving left
       velocityX = state.player.isDucking ? -3 : -5;
     } else if (state.player.isMovingRight) {
-      // Apply a consistent movement speed when moving right
       velocityX = state.player.isDucking ? 3 : 5;
     } else {
-      // When not moving, ensure velocity is zero
-      velocityX = 0;
+      velocityX = 0; // Stop when not moving
     }
 
     // Apply horizontal movement - properly scaled by delta time
@@ -161,6 +158,7 @@ export const useGameLoop = ({ fps = 60 }: GameLoopProps = {}) => {
       let platformLandedOn = null;
 
       for (const platform of state.platforms) {
+        // Handle landing on platform
         if (checkStandingOnPlatform(playerX, playerY, playerWidth, playerHeight, platform, velocityY)) {
           // Only land if it's a ground platform or we're falling onto it
           if (!platform.canPassThrough || velocityY > 0) {
@@ -172,9 +170,9 @@ export const useGameLoop = ({ fps = 60 }: GameLoopProps = {}) => {
 
         // Check if hitting bottom of platform when jumping
         if (checkHittingPlatformBottom(playerX, playerY, playerWidth, playerHeight, platform, velocityY)) {
-          // Bounce off the bottom of the platform
-          velocityY = Math.abs(velocityY) * 0.3; // Reduced bounce
-
+          // Bounce off the bottom slightly
+          velocityY = Math.abs(velocityY) * 0.3;
+          
           // Update velocity immediately
           dispatch({
             type: 'UPDATE_VELOCITY_Y',
@@ -190,7 +188,7 @@ export const useGameLoop = ({ fps = 60 }: GameLoopProps = {}) => {
           payload: { platformY: platformLandedOn.y }
         });
       } else {
-        // Update player position with new velocityY for proper physics
+        // Update player position with velocity - Key for smooth movement
         dispatch({
           type: 'PLAYER_MOVE_WITH_VELOCITY',
           payload: {
@@ -217,7 +215,7 @@ export const useGameLoop = ({ fps = 60 }: GameLoopProps = {}) => {
         }
       }
     } else {
-      // Explicitly update X position for movement even when on platform
+      // Explicitly update position for horizontal movement when on platform
       dispatch({
         type: 'PLAYER_MOVE',
         payload: {
@@ -226,7 +224,7 @@ export const useGameLoop = ({ fps = 60 }: GameLoopProps = {}) => {
         }
       });
 
-      // Still check if player is on platform while moving horizontally
+      // Check if still on platform while moving horizontally
       let onAnyPlatform = false;
       for (const platform of state.platforms) {
         if (checkStandingOnPlatform(playerX, playerY, playerWidth, playerHeight, platform, 0)) {
@@ -235,7 +233,7 @@ export const useGameLoop = ({ fps = 60 }: GameLoopProps = {}) => {
         }
       }
 
-      // If moved off the platform, start falling
+      // If moved off platform, start falling
       if (!onAnyPlatform && state.player.onPlatform) {
         dispatch({
           type: 'SET_ON_PLATFORM',
@@ -244,8 +242,11 @@ export const useGameLoop = ({ fps = 60 }: GameLoopProps = {}) => {
       }
     }
 
-    // Cache current position for next frame comparison
-    lastPositionRef.current = { x: playerX, y: playerY };
+    // Detect if position actually changed (debug for stuck movement)
+    if (lastPositionRef.current.x !== playerX || lastPositionRef.current.y !== playerY) {
+      // Position changed, update last position
+      lastPositionRef.current = { x: playerX, y: playerY };
+    }
 
     // Apply element-specific effects
     switch (state.player.currentElement) {
@@ -253,7 +254,6 @@ export const useGameLoop = ({ fps = 60 }: GameLoopProps = {}) => {
         // Air spirit falls slower
         if (state.player.isJumping && velocityY > 0) {
           velocityY *= 0.9;
-          // Update with reduced falling speed
           dispatch({
             type: 'UPDATE_VELOCITY_Y',
             payload: velocityY
@@ -265,7 +265,7 @@ export const useGameLoop = ({ fps = 60 }: GameLoopProps = {}) => {
         if (state.player.energy < state.player.maxEnergy) {
           dispatch({
             type: 'UPDATE_ENERGY',
-            payload: state.player.energy + 0.3 // Increased regeneration
+            payload: state.player.energy + 0.3
           });
         }
         break;
@@ -273,7 +273,6 @@ export const useGameLoop = ({ fps = 60 }: GameLoopProps = {}) => {
         // Water spirits can "float" briefly at jump apex
         if (state.player.isJumping && Math.abs(velocityY) < 2) {
           velocityY *= 0.7;
-          // Update with reduced falling speed
           dispatch({
             type: 'UPDATE_VELOCITY_Y',
             payload: velocityY
@@ -297,7 +296,7 @@ export const useGameLoop = ({ fps = 60 }: GameLoopProps = {}) => {
         if (state.player.energy < state.player.maxEnergy) {
           dispatch({
             type: 'UPDATE_ENERGY',
-            payload: state.player.energy + 0.1 // Small energy regeneration
+            payload: state.player.energy + 0.1
           });
         }
         break;
@@ -307,11 +306,16 @@ export const useGameLoop = ({ fps = 60 }: GameLoopProps = {}) => {
     if (state.player.health < state.player.maxHealth) {
       dispatch({
         type: 'UPDATE_HEALTH',
-        payload: state.player.health + 0.01 // Very slow health regen
+        payload: state.player.health + 0.01
       });
     }
     
-    // Fix enemy movement logic to ensure enemies actually move
+    // Update projectiles if there are any
+    if (state.projectiles.length > 0) {
+      dispatch({ type: 'UPDATE_PROJECTILES' });
+    }
+    
+    // Update enemy movements
     if (state.enemies.length > 0) {
       const updatedEnemies = state.enemies.map(enemy => {
         // Calculate distance to player
@@ -319,7 +323,7 @@ export const useGameLoop = ({ fps = 60 }: GameLoopProps = {}) => {
   
         // Only move if within a certain range (enemy sight)
         if (distanceToPlayer < 400) {
-          // Determine direction to player - Fixed with proper type
+          // Determine direction to player
           const directionToPlayer: 'left' | 'right' = enemy.x < state.player.x ? 'right' : 'left';
   
           // Calculate new x position
@@ -328,7 +332,7 @@ export const useGameLoop = ({ fps = 60 }: GameLoopProps = {}) => {
             enemy.x + moveSpeed :
             enemy.x - moveSpeed;
   
-          // Check if movement would cause collision with a platform's side
+          // Check if movement would cause collision
           let canMove = true;
           let wouldFall = true;
   
@@ -368,7 +372,7 @@ export const useGameLoop = ({ fps = 60 }: GameLoopProps = {}) => {
           }
   
           if (canMove && !wouldFall) {
-            // Return updated enemy
+            // Return updated enemy with new position
             return {
               ...enemy,
               x: newX,
@@ -392,21 +396,26 @@ export const useGameLoop = ({ fps = 60 }: GameLoopProps = {}) => {
     }
   };
 
+  // Set up and clean up game loop with requestAnimationFrame
   useEffect(() => {
     if (state.isPlaying && !state.isPaused) {
       // Clean up any existing animation frame
       if (requestRef.current) {
         cancelAnimationFrame(requestRef.current);
       }
+      
       // Start a new game loop
       requestRef.current = requestAnimationFrame(gameLoop);
+      console.log("Game loop started");
     } else if (requestRef.current) {
       cancelAnimationFrame(requestRef.current);
+      console.log("Game loop stopped");
     }
 
     return () => {
       if (requestRef.current) {
         cancelAnimationFrame(requestRef.current);
+        console.log("Game loop cleanup");
       }
     };
   }, [state.isPlaying, state.isPaused, state.gameOver]);

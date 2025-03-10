@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGame, ElementType } from '@/contexts/GameContext';
 import { Heart, Battery, Flame, Droplet, Leaf, Wind, Ghost } from 'lucide-react';
@@ -53,14 +53,14 @@ const GameHUD: React.FC = () => {
   };
 
   return (
-    <div className="absolute inset-x-0 p-4 z-10">
-      <div className="max-w-4xl mx-auto flex flex-col space-y-4">
-        {/* Top bar with score and level */}
-        <div className="flex justify-between items-center">
+    <>
+      {/* Top bar with score and level */}
+      <div className="absolute inset-x-0 top-0 p-4 z-10">
+        <div className="max-w-4xl mx-auto flex justify-between items-center">
           <motion.div 
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
-            className="glass-panel px-4 py-2 rounded-lg pointer-events-auto shadow-lg border border-white/10"
+            className="glass-panel px-4 py-2 rounded-lg shadow-lg border border-white/10"
           >
             <div className="text-sm text-white/80">Score</div>
             <motion.div 
@@ -82,7 +82,7 @@ const GameHUD: React.FC = () => {
               e.stopPropagation();
               dispatch({ type: 'PAUSE_GAME' });
             }}
-            className="glass-panel px-4 py-2 rounded-lg pointer-events-auto hover:bg-white/10 transition-colors shadow-lg border border-white/10"
+            className="glass-panel px-4 py-2 rounded-lg hover:bg-white/10 transition-colors shadow-lg border border-white/10"
           >
             <div className="text-xl font-bold tracking-wider">PAUSE</div>
           </motion.button>
@@ -90,40 +90,12 @@ const GameHUD: React.FC = () => {
           <motion.div 
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
-            className="glass-panel px-4 py-2 rounded-lg text-right pointer-events-auto shadow-lg border border-white/10"
+            className="glass-panel px-4 py-2 rounded-lg text-right shadow-lg border border-white/10"
           >
             <div className="text-sm text-white/80">Level</div>
             <div className="text-xl font-bold">{state.isTutorialLevel ? "Home" : state.level}</div>
           </motion.div>
         </div>
-        
-        {/* Health and energy bars - Positioned at the bottom left */}
-        <motion.div 
-          className="fixed bottom-6 left-6 z-40 flex flex-col space-y-3 w-64"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-        >
-          {/* Health bar */}
-          <ProgressBar 
-            value={player.health} 
-            maxValue={player.maxHealth} 
-            label="Health" 
-            color="#FF5555"
-            animate={false}
-            icon={<Heart size={14} className="text-red-500" />}
-          />
-          
-          {/* Energy bar */}
-          <ProgressBar 
-            value={player.energy} 
-            maxValue={player.maxEnergy} 
-            label="Energy" 
-            color={elementColors[player.currentElement]}
-            animate={true}
-            icon={<Battery size={14} className="text-yellow-500" />}
-          />
-        </motion.div>
         
         {/* Element power description */}
         <AnimatePresence mode="wait">
@@ -134,7 +106,7 @@ const GameHUD: React.FC = () => {
               animate={{ opacity: 0.9, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.3 }}
-              className="text-center text-sm max-w-sm mx-auto bg-black/40 p-3 rounded-lg"
+              className="text-center text-sm max-w-sm mx-auto mt-4 bg-black/40 p-3 rounded-lg"
             >
               {player.currentElement === 'fire' && (
                 <span>Fire spirits move quickly and regenerate energy faster.</span>
@@ -155,7 +127,30 @@ const GameHUD: React.FC = () => {
           )}
         </AnimatePresence>
       </div>
-    </div>
+      
+      {/* Health and energy bars - Always visible at bottom left */}
+      <div className="fixed bottom-6 left-6 z-30 flex flex-col space-y-3 w-64">
+        {/* Health bar */}
+        <ProgressBar 
+          value={player.health} 
+          maxValue={player.maxHealth} 
+          label="Health" 
+          color="#FF5555"
+          animate={false}
+          icon={<Heart size={14} className="text-red-500" />}
+        />
+        
+        {/* Energy bar */}
+        <ProgressBar 
+          value={player.energy} 
+          maxValue={player.maxEnergy} 
+          label="Energy" 
+          color={elementColors[player.currentElement]}
+          animate={true}
+          icon={<Battery size={14} className="text-yellow-500" />}
+        />
+      </div>
+    </>
   );
 };
 

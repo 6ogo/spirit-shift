@@ -15,7 +15,7 @@ const Enemy = ({ enemy }) => {
 
   return (
     <div
-      className="absolute transition-transform"
+      className="absolute"
       style={{
         left: enemy.x,
         top: enemy.y,
@@ -106,7 +106,7 @@ const ElementSelection = () => {
       {state.availableElements.map((element) => (
         <button
           key={element}
-          className={`w-16 h-16 rounded-full flex items-center justify-center transition-all pointer-events-auto ${
+          className={`w-16 h-16 rounded-full flex items-center justify-center transition-all ${
             state.player.currentElement === element
               ? 'scale-110 border-2 border-white'
               : 'opacity-70'
@@ -122,7 +122,7 @@ const ElementSelection = () => {
           }}
         >
           {getElementIcon(element)}
-          <div className="absolute -bottom-6 text-sm whitespace-nowrap text-center text-white pointer-events-none">
+          <div className="absolute -bottom-6 text-sm whitespace-nowrap text-center text-white">
             {elementNames[element]}
           </div>
         </button>
@@ -188,7 +188,6 @@ const GameCanvas: React.FC = () => {
         setMousePosition({ x, y });
 
         // Calculate direction vector from player to mouse
-        // Account for camera offset to get accurate aiming
         let cameraOffsetX = 0;
         
         if (!cameraLocked) {
@@ -236,14 +235,15 @@ const GameCanvas: React.FC = () => {
     };
   }, [isPlaying, isPaused, state.player.x, state.player.y, windowSize, dispatch, cameraLocked]);
 
-  // Keyboard event handling - Consolidated here only
+  // Keyboard event handling
   useEffect(() => {
+    // Only attach keyboard events if the game is playing and not paused
     if (!isPlaying || isPaused) return;
 
     console.log("Setting up keyboard controls in GameCanvas");
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Prevent default actions for game controls to avoid scrolling
+      // Prevent default actions for game controls
       if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' ', 'w', 'a', 's', 'd'].includes(e.key)) {
         e.preventDefault();
       }
@@ -266,7 +266,6 @@ const GameCanvas: React.FC = () => {
           dispatch({ type: 'PLAYER_DUCK', payload: true });
           break;
         case ' ':
-          // Space only jumps, doesn't shoot
           dispatch({ type: 'PLAYER_JUMP' });
           break;
         case '1':
@@ -310,7 +309,6 @@ const GameCanvas: React.FC = () => {
       }
     };
 
-    // Use document for keyboard events for better coverage
     document.addEventListener('keydown', handleKeyDown);
     document.addEventListener('keyup', handleKeyUp);
 
@@ -323,7 +321,7 @@ const GameCanvas: React.FC = () => {
   // Pause screen component
   const PauseScreen = () => (
     isPaused ? (
-      <div className="absolute inset-0 flex flex-col items-center justify-center z-20 bg-black/50 backdrop-blur-sm">
+      <div className="absolute inset-0 flex flex-col items-center justify-center z-30 bg-black/50 backdrop-blur-sm">
         <div className="glass-panel p-8 flex flex-col items-center gap-6 rounded-xl">
           <div className="text-3xl font-bold mb-2 text-gradient">PAUSED</div>
 
@@ -364,7 +362,7 @@ const GameCanvas: React.FC = () => {
   // Game Over screen component
   const GameOverScreen = () => (
     state.gameOver ? (
-      <div className="absolute inset-0 flex flex-col items-center justify-center z-20 bg-black/60 backdrop-blur-sm">
+      <div className="absolute inset-0 flex flex-col items-center justify-center z-30 bg-black/60 backdrop-blur-sm">
         <div className="glass-panel p-8 flex flex-col items-center gap-6 rounded-xl">
           <div className="text-3xl font-bold mb-2 text-red-500">GAME OVER</div>
           <div className="text-xl mb-4">Score: {state.score}</div>
@@ -477,6 +475,14 @@ const GameCanvas: React.FC = () => {
     );
   };
 
+  // Determine camera position for proper player following
+  const cameraPosition = cameraLocked
+    ? "translate3d(0px, 0px, 0px)"
+    : `translate3d(${Math.min(
+        Math.max(windowSize.width / 2 - state.player.x, -800 + windowSize.width / 2),
+        0
+      )}px, 0px, 0px)`;
+
   return (
     <div
       ref={gameContainerRef}
@@ -486,8 +492,6 @@ const GameCanvas: React.FC = () => {
         height: '100%'
       }}
       tabIndex={0}
-      onClick={() => gameContainerRef.current?.focus()}
-      onFocus={() => console.log("Game container focused")}
     >
       {/* Dynamic background elements based on current element */}
       <div
@@ -514,18 +518,13 @@ const GameCanvas: React.FC = () => {
         )}
       </div>
 
-      {/* Game elements container - where game objects get positioned */}
+      {/* Game elements container with proper hardware acceleration */}
       <div className="absolute inset-0">
-        {/* Camera follows player horizontally with custom locking behavior */}
+        {/* Camera follows player horizontally with dynamic positioning */}
         <div
-          className="absolute transition-transform duration-300 ease-out"
+          className="absolute will-change-transform hardware-accelerated"
           style={{
-            transform: cameraLocked 
-              ? `translateX(0px)` // Fixed camera in tutorial start
-              : `translateX(${Math.min(
-                  Math.max(windowSize.width / 2 - state.player.x, -800 + windowSize.width / 2),
-                  0
-                )}px)`
+            transform: cameraPosition
           }}
         >
           {/* Platforms */}

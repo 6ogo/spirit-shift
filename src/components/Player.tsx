@@ -13,7 +13,7 @@ const Player: React.FC<PlayerProps> = ({ width = 40, height = 50 }) => {
   const [isShifting, setIsShifting] = useState(false);
   const [lastElement, setLastElement] = useState<ElementType>(player.currentElement);
   
-  // Use the facingDirection from game state instead of calculating locally
+  // Use the facingDirection from game state
   const facingDirection = player.facingDirection;
   
   // Element shift animation
@@ -49,7 +49,7 @@ const Player: React.FC<PlayerProps> = ({ width = 40, height = 50 }) => {
   
   // Create particle effects based on element
   const Particles = () => {
-    const particleCount = 8; // More particles for better effect
+    const particleCount = 8;
     const element = player.currentElement;
     if (element === 'spirit') return null;
     
@@ -65,19 +65,19 @@ const Player: React.FC<PlayerProps> = ({ width = 40, height = 50 }) => {
               scale: Math.random() * 0.5 + 0.5 
             }}
             animate={{ 
-              x: Math.random() * 60 - 30, // Wider particle spread
+              x: Math.random() * 60 - 30,
               y: Math.random() * -40 - 10, 
               opacity: 0,
               scale: 0
             }}
             transition={{ 
-              duration: Math.random() * 1.5 + 0.7, // Varied duration
+              duration: Math.random() * 1.5 + 0.7,
               repeat: Infinity, 
               repeatDelay: Math.random() * 0.3 
             }}
             className="absolute rounded-full"
             style={{ 
-              width: Math.random() * 5 + 2, // Varied particle size
+              width: Math.random() * 5 + 2,
               height: Math.random() * 5 + 2,
               backgroundColor: elementColors[element],
               left: '50%',
@@ -100,12 +100,12 @@ const Player: React.FC<PlayerProps> = ({ width = 40, height = 50 }) => {
   
   return (
     <div 
-      className="absolute transition-transform will-change-transform"
+      className="absolute will-change-transform hardware-accelerated"
       style={{ 
         left: player.x, 
         top: player.y,
-        transform: `translate(-50%, -100%) scaleX(${facingDirection === 'left' ? -1 : 1})`,
-        filter: isShifting ? 'blur(3px)' : 'none', // Blur effect during shifting
+        transform: `translate3d(-50%, -100%, 0) scaleX(${facingDirection === 'left' ? -1 : 1})`,
+        filter: isShifting ? 'blur(3px)' : 'none',
         transition: 'filter 0.3s ease'
       }}
     >
@@ -116,9 +116,8 @@ const Player: React.FC<PlayerProps> = ({ width = 40, height = 50 }) => {
             scale: isShifting ? [1, 1.2, 1] : 1, 
             opacity: 1,
             ...getJumpAnimation(),
-            rotateY: facingDirection === 'left' ? 180 : 0, // Better direction change
-            height: player.height, // Dynamic height for ducking
-            width: player.isDucking ? player.width * 1.2 : player.width, // Wider when ducking
+            height: player.height,
+            width: player.isDucking ? player.width * 1.2 : player.width,
           }}
           transition={{ 
             duration: 0.5,

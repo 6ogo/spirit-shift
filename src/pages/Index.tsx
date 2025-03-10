@@ -16,10 +16,51 @@ const DebugInfo = ({ state }) => (
     <div>player.velocityY: {Math.round(state.player.velocityY)}</div>
     <div>player.isMovingLeft: {String(state.player.isMovingLeft)}</div>
     <div>player.isMovingRight: {String(state.player.isMovingRight)}</div>
-    <div>player.isJumping: {String(state.player.isJumping)}</div>
-    <div>player.onPlatform: {String(state.player.onPlatform)}</div>
+    <div>onPlatform: {String(state.player.onPlatform)}</div>
   </div>
 );
+
+// Background visual elements
+const BackgroundElements = () => {
+  return (
+    <div className="fixed inset-0 -z-10 overflow-hidden">
+      {/* Starry background */}
+      <div 
+        className="absolute inset-0 opacity-30"
+        style={{
+          background: 'radial-gradient(circle at 50% 50%, rgba(50, 50, 80, 0.2) 0%, rgba(0, 0, 0, 0) 100%)',
+          backgroundSize: '15px 15px',
+          backgroundImage: 'radial-gradient(circle, white 1px, transparent 1px)',
+        }}
+      ></div>
+      
+      {/* Distant nebula effects */}
+      <div 
+        className="absolute opacity-20 rounded-full blur-3xl"
+        style={{
+          width: '40vw',
+          height: '40vw',
+          background: 'radial-gradient(circle, rgba(142, 45, 226, 0.5) 0%, rgba(74, 0, 224, 0.1) 100%)',
+          left: '70%',
+          top: '60%',
+          transform: 'translate(-50%, -50%)',
+        }}
+      ></div>
+      
+      <div 
+        className="absolute opacity-20 rounded-full blur-3xl"
+        style={{
+          width: '50vw',
+          height: '50vw',
+          background: 'radial-gradient(circle, rgba(45, 149, 226, 0.5) 0%, rgba(0, 102, 224, 0.1) 100%)',
+          left: '20%',
+          top: '30%',
+          transform: 'translate(-50%, -50%)',
+        }}
+      ></div>
+    </div>
+  );
+};
 
 // GameContent component containing the actual game elements
 const GameContent = () => {
@@ -61,7 +102,7 @@ const GameContent = () => {
           className="w-full h-full absolute inset-0 z-20"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ duration: 0.5 }}
+          transition={{ duration: 0.3 }}
         >
           <GameCanvas />
         </motion.div>
@@ -69,48 +110,6 @@ const GameContent = () => {
       
       {/* Optional debug overlay */}
       {showDebug && <DebugInfo state={state} />}
-    </div>
-  );
-};
-
-// Background visual elements
-const BackgroundElements = () => {
-  return (
-    <div className="fixed inset-0 -z-10 overflow-hidden">
-      {/* Starry background */}
-      <div 
-        className="absolute inset-0 opacity-30"
-        style={{
-          background: 'radial-gradient(circle at 50% 50%, rgba(50, 50, 80, 0.2) 0%, rgba(0, 0, 0, 0) 100%)',
-          backgroundSize: '15px 15px',
-          backgroundImage: 'radial-gradient(circle, white 1px, transparent 1px)',
-        }}
-      ></div>
-      
-      {/* Distant nebula effects */}
-      <div 
-        className="absolute opacity-20 rounded-full blur-3xl"
-        style={{
-          width: '40vw',
-          height: '40vw',
-          background: 'radial-gradient(circle, rgba(142, 45, 226, 0.5) 0%, rgba(74, 0, 224, 0.1) 100%)',
-          left: '70%',
-          top: '60%',
-          transform: 'translate(-50%, -50%)',
-        }}
-      ></div>
-      
-      <div 
-        className="absolute opacity-20 rounded-full blur-3xl"
-        style={{
-          width: '50vw',
-          height: '50vw',
-          background: 'radial-gradient(circle, rgba(45, 149, 226, 0.5) 0%, rgba(0, 102, 224, 0.1) 100%)',
-          left: '20%',
-          top: '30%',
-          transform: 'translate(-50%, -50%)',
-        }}
-      ></div>
     </div>
   );
 };
