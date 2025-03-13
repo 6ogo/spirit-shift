@@ -97,16 +97,19 @@ const GameHUD: React.FC = () => {
           </motion.div>
         </div>
         
-        {/* Element power description */}
+        {/* Element power description - IMPROVED VISIBILITY */}
         <AnimatePresence mode="wait">
           {state.isTutorialLevel && (
             <motion.div
               key={player.currentElement}
-              initial={{ opacity: 25, y: 10 }}
+              initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.3 }}
-              className="text-center text-sm max-w-sm mx-auto mt-4 bg-black/80 p-4 rounded-lg border border-white/20 shadow-xl backdrop-blur-md font-medium"
+              className="text-center text-sm max-w-sm mx-auto mt-4 bg-black/90 p-4 rounded-lg border border-white/30 shadow-xl backdrop-blur-md font-medium text-white"
+              style={{
+                boxShadow: `0 0 20px rgba(0,0,0,0.7), 0 0 5px ${elementColors[player.currentElement]}80`
+              }}
             >
               {player.currentElement === 'fire' && (
                 <span>Fire spirits move quickly and regenerate energy faster.</span>
@@ -128,7 +131,7 @@ const GameHUD: React.FC = () => {
         </AnimatePresence>
       </div>
       
-      {/* Health and energy bars - Always visible at bottom left */}
+      {/* Health and energy bars - ALWAYS VISIBLE at bottom left with improved visibility */}
       <div className="fixed bottom-6 left-6 z-[100] flex flex-col space-y-3 w-64">
         {/* Health bar */}
         <ProgressBar 
@@ -138,7 +141,7 @@ const GameHUD: React.FC = () => {
           color="#FF5555"
           animate={false}
           icon={<Heart size={14} className="text-red-500" />}
-          className="border border-white/20 shadow-xl backdrop-blur-md bg-black/40"
+          className="border border-white/20 shadow-xl backdrop-blur-md bg-black/70"
         />
         
         {/* Energy bar */}
@@ -149,7 +152,7 @@ const GameHUD: React.FC = () => {
           color={elementColors[player.currentElement]}
           animate={true}
           icon={<Battery size={14} className="text-yellow-500" />}
-          className="border border-white/20 shadow-xl backdrop-blur-md bg-black/40"
+          className="border border-white/20 shadow-xl backdrop-blur-md bg-black/70"
         />
       </div>
     </>
