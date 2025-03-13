@@ -103,7 +103,7 @@ const GameHUD: React.FC = () => {
             <motion.div
               key={player.currentElement}
               initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 0.9, y: 0 }}
+              animate={{ opacity: 50, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.3 }}
               className="text-center text-sm max-w-sm mx-auto mt-4 bg-black/40 p-3 rounded-lg"
