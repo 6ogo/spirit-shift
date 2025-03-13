@@ -87,6 +87,7 @@ type GameAction =
   | { type: 'END_GAME' }
   | { type: 'RESTART_GAME' }
   | { type: 'GAME_OVER' }
+  | { type: 'UPDATE_PLAYER', payload: Partial<PlayerState> }
   | { type: 'PLAYER_MOVE', payload: { x: number, y: number } }
   | { type: 'PLAYER_MOVE_WITH_VELOCITY', payload: { x: number, y: number, velocityY: number } }
   | { type: 'UPDATE_VELOCITY_Y', payload: number }
@@ -341,6 +342,14 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
     }
     case 'GAME_OVER':
       return { ...state, gameOver: true };
+    case 'UPDATE_PLAYER':
+      return {
+        ...state,
+        player: {
+          ...state.player,
+          ...action.payload,
+        },
+      };
     case 'PLAYER_MOVE':
       return {
         ...state,
@@ -513,7 +522,8 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
         state.player.aimDirectionY * state.player.aimDirectionY
       );
 
-      // If aim length is too small, default to shooting in the direction the player is facing
+      // Fix shooting direction: If aim length is too small or if the aim hasn't been set yet,
+      // default to shooting in the direction the player is facing
       let normalizedX = 0;
       let normalizedY = 0;
       
@@ -521,14 +531,36 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
         normalizedX = state.player.aimDirectionX / aimLength;
         normalizedY = state.player.aimDirectionY / aimLength;
       } else {
+        // Default to facing direction with a slight angle based on element
         normalizedX = state.player.facingDirection === 'right' ? 1 : -1;
-        normalizedY = 0;
+        
+        // Add slight variations based on element to make shooting more dynamic
+        switch (state.player.currentElement) {
+          case 'fire':
+            normalizedY = -0.1; // Slight upward
+            break;
+          case 'water':
+            normalizedY = 0; // Straight
+            break;
+          case 'earth':
+            normalizedY = 0.1; // Slight downward
+            break;
+          case 'air':
+            normalizedY = -0.2; // More upward
+            break;
+          default:
+            normalizedY = 0;
+        }
       }
+
+      // Adjust position to shoot from slightly above the center of the player
+      const projectileStartX = state.player.x + (normalizedX * state.player.width / 2);
+      const projectileStartY = state.player.y - (state.player.height / 2) - 5;
 
       const newProjectile: ProjectileState = {
         id: state.nextProjectileId,
-        x: state.player.x + (normalizedX * state.player.width / 2),
-        y: state.player.y - state.player.height / 2, // Adjust to shoot from center of player
+        x: projectileStartX,
+        y: projectileStartY,
         velocityX: normalizedX * projectileSpeed,
         velocityY: normalizedY * projectileSpeed,
         element: state.player.currentElement,
@@ -544,6 +576,7 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
           ...state.player,
           lastShootTime: now,
           energy: state.player.energy - 10,
+          isShooting: true, // Add shooting state to help with animations
         },
         projectiles: [...state.projectiles, newProjectile],
         nextProjectileId: state.nextProjectileId + 1

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGame } from '@/contexts/GameContext';
-import { useGameLoop } from '@/hooks/useGameLoop';
+import { useGameLoop, LevelTransition } from '@/hooks/useGameLoop';
 import Player from './Player';
 import Platform from './Platform';
 import Spirit from './Spirit';
@@ -389,29 +389,6 @@ const GameCanvas: React.FC = () => {
     ) : null
   );
 
-  // Controls helper component that shows key instructions
-  const ControlsHelper = () => (
-    tutorialVisible && isPlaying && !isPaused ? (
-      <motion.div 
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        className="absolute top-10 left-1/2 -translate-x-1/2 text-white text-sm bg-black/50 p-3 rounded-md backdrop-blur-sm z-10 border border-white/10"
-      >
-        <h3 className="font-bold mb-2 text-center">Controls:</h3>
-        <div className="grid grid-cols-2 gap-x-4 gap-y-1">
-          <div>W / Space / ↑</div><div>Jump</div>
-          <div>A / ←</div><div>Move Left</div>
-          <div>D / →</div><div>Move Right</div>
-          <div>S / ↓</div><div>Duck</div>
-          <div>1-5</div><div>Change Element</div>
-          <div>F / Left Click</div><div>Shoot</div>
-          <div>ESC</div><div>Pause</div>
-        </div>
-      </motion.div>
-    ) : null
-  );
-
   // Element tutorial shown at start
   const ElementTutorial = () => (
     tutorialVisible && state.level === 1 && !isPaused ? (
@@ -435,24 +412,61 @@ const GameCanvas: React.FC = () => {
     ) : null
   );
 
-  // Start playing prompt
+  // Start playing prompt with enhanced controls
   const StartPlayingPrompt = () => (
     tutorialVisible && state.level === 1 && !isPaused ? (
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: -20 }}
+        exit={{ opacity: 0, y: -20, transition: { duration: 0.4 } }}
         transition={{ duration: 0.5, delay: 0.3 }}
-        className="absolute bottom-24 right-10 text-white text-center flex flex-col items-center"
+        className="absolute bottom-24 right-10 text-white text-center z-40"
       >
-        <p className="text-xl font-bold mb-2 text-gradient">Start Playing</p>
-        <motion.div
-          animate={{ x: [0, 10, 0] }}
-          transition={{ duration: 1.5, repeat: Infinity }}
-        >
-          <ArrowRight size={32} className="text-white" />
-        </motion.div>
-        <p className="mt-2 text-sm">Move right to begin your journey →</p>
+        <div className="glass-panel border border-white/10 p-6 rounded-lg shadow-xl flex flex-col items-center">
+          <p className="text-2xl font-bold mb-4 text-gradient">Start Your Journey</p>
+          
+          <div className="grid grid-cols-2 gap-x-5 gap-y-2 mb-5 text-left">
+            <div className="flex items-center gap-2">
+              <kbd className="bg-white/20 px-2 py-1 rounded text-xs">W</kbd>
+              <kbd className="bg-white/20 px-2 py-1 rounded text-xs">↑</kbd>
+              <kbd className="bg-white/20 px-2 py-1 rounded text-xs">Space</kbd>
+            </div>
+            <div>Jump</div>
+            
+            <div className="flex items-center gap-2">
+              <kbd className="bg-white/20 px-2 py-1 rounded text-xs">A</kbd>
+              <kbd className="bg-white/20 px-2 py-1 rounded text-xs">←</kbd>
+            </div>
+            <div>Move Left</div>
+            
+            <div className="flex items-center gap-2">
+              <kbd className="bg-white/20 px-2 py-1 rounded text-xs">D</kbd>
+              <kbd className="bg-white/20 px-2 py-1 rounded text-xs">→</kbd>
+            </div>
+            <div>Move Right</div>
+            
+            <div className="flex items-center gap-2">
+              <kbd className="bg-white/20 px-2 py-1 rounded text-xs">F</kbd>
+              <kbd className="bg-white/20 px-2 py-1 rounded text-xs">Click</kbd>
+            </div>
+            <div>Shoot</div>
+            
+            <div className="flex items-center gap-2">
+              <kbd className="bg-white/20 px-2 py-1 rounded text-xs">1-5</kbd>
+            </div>
+            <div>Change Element</div>
+          </div>
+          
+          <div className="mt-4 flex items-center justify-center gap-3">
+            <motion.div
+              animate={{ x: [0, 10, 0] }}
+              transition={{ duration: 1.5, repeat: Infinity }}
+            >
+              <ArrowRight size={24} className="text-white" />
+            </motion.div>
+            <p className="font-bold text-gradient">Move right to begin</p>
+          </div>
+        </div>
       </motion.div>
     ) : null
   );
@@ -565,7 +579,6 @@ const GameCanvas: React.FC = () => {
       <AnimatePresence>
         {tutorialVisible && (
           <>
-            <ControlsHelper />
             <ElementTutorial />
             <StartPlayingPrompt />
           </>
@@ -574,7 +587,8 @@ const GameCanvas: React.FC = () => {
       
       <PauseScreen />
       <GameOverScreen />
-
+      <LevelTransition />
+      
       {/* Mobile controls overlay (for touch devices) */}
       <div className="md:hidden absolute bottom-20 left-4 right-4 z-30 flex justify-between">
         <div className="flex gap-2">

@@ -1,10 +1,41 @@
-import { useEffect, useRef } from 'react';
-import { useGame } from '@/contexts/GameContext';
-import { Platform } from '@/contexts/GameContext';
+import React, { useEffect, useRef, useState } from 'react';
+import { useGame, Platform } from '@/contexts/GameContext';
+import { motion } from 'framer-motion';
 
 export interface GameLoopProps {
   fps?: number;
 }
+
+// Transition overlay component for level transitions
+export const LevelTransition = () => {
+  const { state } = useGame();
+  const [isTransitioning, setIsTransitioning] = useState(false);
+  
+  useEffect(() => {
+    // Detect level changes
+    if (state.level === 2 && state.isPlaying) {
+      setIsTransitioning(true);
+      // Reset after animation completes
+      const timer = setTimeout(() => {
+        setIsTransitioning(false);
+      }, 1500); // Match this with the animation duration
+      
+      return () => clearTimeout(timer);
+    }
+  }, [state.level, state.isPlaying]);
+  
+  if (!isTransitioning) return null;
+  
+  return (
+    <motion.div 
+      className="fixed inset-0 bg-black z-50 pointer-events-none"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.75 }}
+    />
+  );
+};
 
 export const useGameLoop = ({ fps = 60 }: GameLoopProps = {}) => {
   const { state, dispatch } = useGame();
@@ -133,7 +164,7 @@ export const useGameLoop = ({ fps = 60 }: GameLoopProps = {}) => {
     let playerWidth = state.player.width;
     let playerHeight = state.player.height;
 
-    // Apply movement based on player's movement flags
+    // Apply movement based on player's movement flags - FIXED: Ensure velocity is applied correctly
     if (state.player.isMovingLeft) {
       velocityX = state.player.isDucking ? -3 : -5;
     } else if (state.player.isMovingRight) {
@@ -143,10 +174,16 @@ export const useGameLoop = ({ fps = 60 }: GameLoopProps = {}) => {
     }
 
     // Apply horizontal movement - properly scaled by delta time
-    playerX += velocityX * 60 * cappedDelta;
+    const moveStep = velocityX * 60 * cappedDelta;
+    playerX += moveStep;
     
     // Ensure player doesn't go off-screen horizontally
     playerX = Math.max(playerWidth / 2, Math.min(1600 - playerWidth / 2, playerX));
+
+    // Check if player has moved far enough right to start Level 1
+    if (state.isTutorialLevel && playerX > 600) {
+      dispatch({ type: 'ADVANCE_LEVEL' });
+    }
 
     // Apply gravity if the player is jumping or not on a platform
     if (state.player.isJumping || !state.player.onPlatform) {
@@ -246,6 +283,14 @@ export const useGameLoop = ({ fps = 60 }: GameLoopProps = {}) => {
     if (lastPositionRef.current.x !== playerX || lastPositionRef.current.y !== playerY) {
       // Position changed, update last position
       lastPositionRef.current = { x: playerX, y: playerY };
+    }
+
+    // Reset shooting state after a short delay (animation effect)
+    if (state.player.isShooting && (Date.now() - state.player.lastShootTime > 200)) {
+      dispatch({
+        type: 'UPDATE_PLAYER',
+        payload: { isShooting: false }
+      });
     }
 
     // Apply element-specific effects
