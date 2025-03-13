@@ -1,3 +1,4 @@
+
 import React, { useEffect, useRef, useState } from 'react';
 import { useGame, Platform } from '@/contexts/GameContext';
 import { motion } from 'framer-motion';
@@ -12,14 +13,11 @@ export const LevelTransition = () => {
   const [isTransitioning, setIsTransitioning] = useState(false);
   
   useEffect(() => {
-    // Detect level changes
     if (state.level === 2 && state.isPlaying) {
       setIsTransitioning(true);
-      // Reset after animation completes
       const timer = setTimeout(() => {
         setIsTransitioning(false);
-      }, 1500); // Match this with the animation duration
-      
+      }, 1500);
       return () => clearTimeout(timer);
     }
   }, [state.level, state.isPlaying]);
@@ -52,6 +50,7 @@ export const useGameLoop = ({ fps = 60 }: GameLoopProps = {}) => {
 
   // Store the last position to detect movement issues
   const lastPositionRef = useRef({ x: 0, y: 0 });
+  const movementDebugRef = useRef({ lastLogTime: 0 });
 
   const gameLoop = (time: number) => {
     if (previousTimeRef.current === undefined) {
@@ -154,9 +153,9 @@ export const useGameLoop = ({ fps = 60 }: GameLoopProps = {}) => {
     const cappedDelta = Math.min(deltaTime, 0.1);
     
     // Gravity effect - adjusted for deltaTime
-    const gravity = 0.8 * 60 * cappedDelta;
+    const gravity = 0.98 * 60 * cappedDelta;
 
-    // Update player position
+    // Update player position directly from state
     let playerX = state.player.x;
     let playerY = state.player.y;
     let velocityX = state.player.velocityX;
@@ -164,19 +163,41 @@ export const useGameLoop = ({ fps = 60 }: GameLoopProps = {}) => {
     let playerWidth = state.player.width;
     let playerHeight = state.player.height;
 
-    // Apply movement based on player's movement flags - FIXED: Always apply velocity correctly
-    // This ensures movement always works regardless of state
-    if (state.player.isMovingLeft) {
-      velocityX = state.player.isDucking ? -3 : -5;
-    } else if (state.player.isMovingRight) {
-      velocityX = state.player.isDucking ? 3 : 5;
+    // FIXED: Apply movement with proper velocity calculation
+    let baseSpeed = state.player.isDucking ? 3 : 5;
+    
+    // Apply element-specific speed modifiers
+    switch (state.player.currentElement) {
+      case 'air':
+        baseSpeed *= 1.3; // Air is faster
+        break;
+      case 'earth':
+        baseSpeed *= 0.85; // Earth is slower
+        break;
+      default:
+        // Other elements use default speed
+        break;
+    }
+    
+    // CRITICAL FIX: directly calculate velocityX based on movement flags
+    if (state.player.isMovingLeft && !state.player.isMovingRight) {
+      velocityX = -baseSpeed;
+    } else if (state.player.isMovingRight && !state.player.isMovingLeft) {
+      velocityX = baseSpeed;
     } else {
-      velocityX = 0; // Stop when not moving
+      velocityX = 0;
     }
 
-    // Apply horizontal movement - properly scaled by delta time
+    // Apply horizontal movement with proper scaling to deltaTime
     const moveStep = velocityX * 60 * cappedDelta;
     playerX += moveStep;
+    
+    // Regularly log movement debugging info
+    const now = Date.now();
+    if (now - movementDebugRef.current.lastLogTime > 500) {
+      console.log(`MOVEMENT DEBUG: x=${playerX.toFixed(1)}, vel=${velocityX.toFixed(1)}, step=${moveStep.toFixed(2)}, isMovingLeft=${state.player.isMovingLeft}, isMovingRight=${state.player.isMovingRight}`);
+      movementDebugRef.current.lastLogTime = now;
+    }
     
     // Ensure player doesn't go off-screen horizontally
     playerX = Math.max(playerWidth / 2, Math.min(1600 - playerWidth / 2, playerX));
@@ -233,17 +254,19 @@ export const useGameLoop = ({ fps = 60 }: GameLoopProps = {}) => {
       dispatch({ type: 'SET_ON_PLATFORM', payload: true });
     }
 
-    // Always update the player position with the current values
+    // CRITICAL FIX: Update the player position and velocity in a single dispatch
+    // This ensures the game state and rendering stay in sync
     dispatch({
       type: 'PLAYER_MOVE_WITH_VELOCITY',
       payload: {
         x: playerX,
         y: playerY,
+        velocityX: velocityX,
         velocityY: velocityY
       }
     });
 
-    // Update projectiles - THIS SHOULD RUN REGARDLESS OF PLAYER STATE
+    // Update projectiles
     dispatch({ type: 'UPDATE_PROJECTILES' });
 
     // Energy regeneration based on element
@@ -267,19 +290,18 @@ export const useGameLoop = ({ fps = 60 }: GameLoopProps = {}) => {
 
     const newEnergy = Math.min(state.player.maxEnergy, state.player.energy + energyRegen);
 
-    // Update player position and velocity
+    // Update player energy (but not position/velocity - those are already updated)
     dispatch({
       type: 'UPDATE_PLAYER',
       payload: {
-        x: playerX,
-        y: playerY,
-        velocityX: velocityX,
-        velocityY: velocityY,
-        energy: newEnergy,
+        energy: newEnergy
       }
     });
 
-    lastPositionRef.current = { x: playerX, y: playerY };
+    // Debug logging for movement issues
+    if (Math.abs(lastPositionRef.current.x - playerX) > 0.1) {
+      lastPositionRef.current = { x: playerX, y: playerY };
+    }
   };
 
   // Set up and clean up game loop with requestAnimationFrame

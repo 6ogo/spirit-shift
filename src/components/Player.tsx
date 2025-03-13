@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { useGame, ElementType } from '@/contexts/GameContext';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -12,9 +13,18 @@ const Player: React.FC<PlayerProps> = ({ width = 40, height = 50 }) => {
   const { player } = state;
   const [isShifting, setIsShifting] = useState(false);
   const [lastElement, setLastElement] = useState<ElementType>(player.currentElement);
+  const [lastPosition, setLastPosition] = useState({ x: player.x, y: player.y });
   
   // Use the facingDirection from game state
   const facingDirection = player.facingDirection;
+  
+  // Log position changes for debugging
+  useEffect(() => {
+    if (Math.abs(lastPosition.x - player.x) > 1 || Math.abs(lastPosition.y - player.y) > 1) {
+      console.log(`Player moved: (${lastPosition.x.toFixed(1)}, ${lastPosition.y.toFixed(1)}) -> (${player.x.toFixed(1)}, ${player.y.toFixed(1)})`);
+      setLastPosition({ x: player.x, y: player.y });
+    }
+  }, [player.x, player.y]);
   
   // Element shift animation
   useEffect(() => {
@@ -97,16 +107,45 @@ const Player: React.FC<PlayerProps> = ({ width = 40, height = 50 }) => {
     }
     return {};
   };
+
+  // Add movement indicators
+  const MovementIndicator = () => {
+    if (!player.isMovingLeft && !player.isMovingRight) return null;
+    
+    const direction = player.isMovingLeft ? 'left' : 'right';
+    
+    return (
+      <motion.div
+        className="absolute bottom-0 left-1/2 -translate-x-1/2 opacity-50"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: [0.2, 0.5, 0.2] }}
+        transition={{ duration: 0.5, repeat: Infinity }}
+      >
+        <div className="relative">
+          <div 
+            className="absolute w-20 h-1 rounded-full"
+            style={{
+              backgroundColor: elementColors[player.currentElement],
+              bottom: -5,
+              left: direction === 'left' ? '-20px' : '0',
+              transform: direction === 'left' ? 'scaleX(-1)' : 'scaleX(1)'
+            }}
+          />
+        </div>
+      </motion.div>
+    );
+  };
   
   return (
     <div 
       className="absolute will-change-transform hardware-accelerated"
       style={{ 
-        left: player.x, 
-        top: player.y,
+        left: player.x + "px", 
+        top: player.y + "px",
         transform: `translate3d(-50%, -100%, 0) scaleX(${facingDirection === 'left' ? -1 : 1})`,
         filter: isShifting ? 'blur(3px)' : 'none',
-        transition: 'filter 0.3s ease'
+        transition: 'filter 0.3s ease',
+        zIndex: 20
       }}
     >
       <AnimatePresence>
@@ -169,7 +208,7 @@ const Player: React.FC<PlayerProps> = ({ width = 40, height = 50 }) => {
             />
           )}
           
-          {/* Moving trail for fire and air elements */}
+          {/* Movement effects for different elements */}
           {(player.currentElement === 'fire' || player.currentElement === 'air') && 
             Math.abs(player.velocityX) > 1 && (
             <motion.div
@@ -242,6 +281,9 @@ const Player: React.FC<PlayerProps> = ({ width = 40, height = 50 }) => {
               }}
             />
           )}
+          
+          {/* Movement indicator (shows current movement direction) */}
+          <MovementIndicator />
           
           {/* Element particles effect */}
           <Particles />

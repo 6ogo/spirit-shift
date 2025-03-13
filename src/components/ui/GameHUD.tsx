@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGame, ElementType } from '@/contexts/GameContext';
@@ -96,39 +97,6 @@ const GameHUD: React.FC = () => {
             <div className="text-xl font-bold">{state.isTutorialLevel ? "Home" : state.level}</div>
           </motion.div>
         </div>
-        
-        {/* Element power description - IMPROVED VISIBILITY */}
-        <AnimatePresence mode="wait">
-          {state.isTutorialLevel && (
-            <motion.div
-              key={player.currentElement}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.3 }}
-              className="text-center text-sm max-w-sm mx-auto mt-4 bg-black/90 p-4 rounded-lg border border-white/30 shadow-xl backdrop-blur-md font-medium text-white"
-              style={{
-                boxShadow: `0 0 20px rgba(0,0,0,0.7), 0 0 5px ${elementColors[player.currentElement]}80`
-              }}
-            >
-              {player.currentElement === 'fire' && (
-                <span>Fire spirits move quickly and regenerate energy faster.</span>
-              )}
-              {player.currentElement === 'water' && (
-                <span>Water spirits can momentarily float when jumping.</span>
-              )}
-              {player.currentElement === 'earth' && (
-                <span>Earth spirits jump higher but fall faster. More resistant to damage.</span>
-              )}
-              {player.currentElement === 'air' && (
-                <span>Air spirits fall more slowly and can float gracefully.</span>
-              )}
-              {player.currentElement === 'spirit' && (
-                <span>Spirit form is balanced in all attributes.</span>
-              )}
-            </motion.div>
-          )}
-        </AnimatePresence>
       </div>
       
       {/* Health and energy bars - ALWAYS VISIBLE at bottom left with improved visibility */}

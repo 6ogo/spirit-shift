@@ -4,11 +4,9 @@ import { useGame } from '@/contexts/GameContext';
 import { useGameLoop, LevelTransition } from '@/hooks/useGameLoop';
 import Player from './Player';
 import Platform from './Platform';
-import Spirit from './Spirit';
 import GameHUD from './ui/GameHUD';
 import { Play, Home, RotateCcw, Flame, Droplet, Leaf, Wind, Ghost, ArrowRight } from 'lucide-react';
 
-// Enemy component
 const Enemy = ({ enemy }) => {
   const { elementColors } = useGame();
   const elementColor = elementColors[enemy.element];
@@ -31,13 +29,11 @@ const Enemy = ({ enemy }) => {
           boxShadow: `0 0 10px ${elementColor}80`,
         }}
       >
-        {/* Enemy eyes - gives them character */}
         <div className="absolute top-1/4 left-0 right-0 flex justify-center space-x-2 pointer-events-none">
           <div className="w-2 h-2 bg-white rounded-full"></div>
           <div className="w-2 h-2 bg-white rounded-full"></div>
         </div>
 
-        {/* Health bar */}
         <div className="absolute -top-4 left-0 right-0 h-1 bg-black/50 rounded-full overflow-hidden">
           <div
             className="h-full bg-green-500"
@@ -45,7 +41,6 @@ const Enemy = ({ enemy }) => {
           />
         </div>
 
-        {/* Element indicator */}
         <div
           className="absolute -top-8 left-1/2 -translate-x-1/2 text-xs bg-black/50 px-1 rounded"
         >
@@ -56,7 +51,6 @@ const Enemy = ({ enemy }) => {
   );
 };
 
-// Projectile component
 const Projectile = ({ projectile }) => {
   const { elementColors } = useGame();
   const elementColor = elementColors[projectile.element];
@@ -80,7 +74,6 @@ const Projectile = ({ projectile }) => {
   );
 };
 
-// Get element icon component
 const getElementIcon = (element) => {
   switch(element) {
     case 'fire':
@@ -97,11 +90,9 @@ const getElementIcon = (element) => {
   }
 };
 
-// Updated Element selection UI to appear at the bottom with proper icons
 const ElementSelection = () => {
   const { state, dispatch, elementColors, elementNames } = useGame();
   
-  // Map element to number key
   const elementKeyMap = {
     'spirit': '1',
     'fire': '2',
@@ -130,7 +121,6 @@ const ElementSelection = () => {
             dispatch({ type: 'CHANGE_ELEMENT', payload: element });
           }}
         >
-          {/* Number displayed above the element */}
           <div className="absolute -top-7 w-6 h-6 bg-black/50 rounded-full flex items-center justify-center text-white border border-white/30">
             {elementKeyMap[element]}
           </div>
@@ -152,11 +142,11 @@ const GameCanvas: React.FC = () => {
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const [tutorialVisible, setTutorialVisible] = useState(true);
   const [cameraLocked, setCameraLocked] = useState(true);
+  const keyPressRef = useRef({ lastLog: 0 });
+  const controlsActive = useRef(false);
 
-  // Initialize game loop
   useGameLoop();
 
-  // Handle window resize for responsiveness
   const [windowSize, setWindowSize] = useState({
     width: window.innerWidth,
     height: window.innerHeight,
@@ -174,7 +164,6 @@ const GameCanvas: React.FC = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Hide tutorial when moving right and unlock camera
   useEffect(() => {
     if (state.player.x > 300 && tutorialVisible) {
       setTutorialVisible(false);
@@ -182,7 +171,6 @@ const GameCanvas: React.FC = () => {
       setTutorialVisible(true);
     }
     
-    // Unlock camera after moving right beyond threshold
     if (state.player.x > 350 && cameraLocked) {
       setCameraLocked(false);
     } else if (state.player.x < 250 && !cameraLocked && isTutorialLevel) {
@@ -190,7 +178,6 @@ const GameCanvas: React.FC = () => {
     }
   }, [state.player.x, tutorialVisible, isTutorialLevel, cameraLocked]);
 
-  // Mouse tracking for aiming
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
       if (gameContainerRef.current) {
@@ -198,10 +185,8 @@ const GameCanvas: React.FC = () => {
         const x = e.clientX - rect.left;
         const y = e.clientY - rect.top;
 
-        // Update mouse position
         setMousePosition({ x, y });
 
-        // Calculate direction vector from player to mouse
         let cameraOffsetX = 0;
         
         if (!cameraLocked) {
@@ -211,15 +196,12 @@ const GameCanvas: React.FC = () => {
           );
         }
         
-        // Get the actual player position on screen
         const playerScreenX = state.player.x + cameraOffsetX;
         const playerScreenY = state.player.y - state.player.height / 2;
         
-        // Calculate aim direction from player position to mouse
         const dirX = x - playerScreenX;
         const dirY = y - playerScreenY;
 
-        // Update aim direction in game state
         dispatch({
           type: 'UPDATE_AIM_DIRECTION',
           payload: { x: dirX, y: dirY }
@@ -227,15 +209,12 @@ const GameCanvas: React.FC = () => {
       }
     };
 
-    // Mouse click for shooting
     const handleMouseClick = (e: MouseEvent) => {
-      // Only handle left mouse button (0)
       if (e.button === 0 && isPlaying && !isPaused) {
         dispatch({ type: 'PLAYER_SHOOT' });
       }
     };
 
-    // Add event listeners
     if (gameContainerRef.current) {
       gameContainerRef.current.addEventListener('mousemove', handleMouseMove);
       gameContainerRef.current.addEventListener('mousedown', handleMouseClick);
@@ -249,44 +228,52 @@ const GameCanvas: React.FC = () => {
     };
   }, [isPlaying, isPaused, state.player.x, state.player.y, windowSize, dispatch, cameraLocked]);
 
-  // Keyboard event handling
   useEffect(() => {
     console.log("Setting up keyboard controls in GameCanvas");
+    controlsActive.current = true;
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Prevent default actions for game controls
       if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' ', 'w', 'a', 's', 'd'].includes(e.key)) {
         e.preventDefault();
       }
       
-      // Handle escape key for pausing regardless of game state
       if (e.key.toLowerCase() === 'escape') {
         dispatch({ type: 'PAUSE_GAME' });
         return;
       }
       
-      // Don't handle other controls when game is paused
       if (isPaused) return;
+      
+      const now = Date.now();
+      if (now - keyPressRef.current.lastLog > 1000) {
+        console.log("Key press detected:", e.key.toLowerCase());
+        keyPressRef.current.lastLog = now;
+      }
       
       switch (e.key.toLowerCase()) {
         case 'w':
         case 'arrowup':
           dispatch({ type: 'PLAYER_JUMP' });
+          console.log("Jump key pressed");
           break;
         case 'a':
         case 'arrowleft':
+          console.log("Left movement key pressed - setting isMovingLeft to true");
           dispatch({ type: 'PLAYER_MOVE_LEFT', payload: true });
           break;
         case 'd':
         case 'arrowright':
+          console.log("Right movement key pressed - setting isMovingRight to true");
           dispatch({ type: 'PLAYER_MOVE_RIGHT', payload: true });
           break;
         case 's':
         case 'arrowdown':
           dispatch({ type: 'PLAYER_DUCK', payload: true });
+          console.log("Duck key pressed");
           break;
         case ' ':
           dispatch({ type: 'PLAYER_JUMP' });
+          console.log("Space bar pressed for jump");
           break;
         case '1':
           dispatch({ type: 'CHANGE_ELEMENT', payload: 'spirit' });
@@ -310,35 +297,48 @@ const GameCanvas: React.FC = () => {
     };
 
     const handleKeyUp = (e: KeyboardEvent) => {
-      // Don't handle controls when game is paused
       if (isPaused) return;
       
       switch (e.key.toLowerCase()) {
         case 'a':
         case 'arrowleft':
+          console.log("Left movement key released - setting isMovingLeft to false");
           dispatch({ type: 'PLAYER_MOVE_LEFT', payload: false });
           break;
         case 'd':
         case 'arrowright':
+          console.log("Right movement key released - setting isMovingRight to false");
           dispatch({ type: 'PLAYER_MOVE_RIGHT', payload: false });
           break;
         case 's':
         case 'arrowdown':
           dispatch({ type: 'PLAYER_DUCK', payload: false });
+          console.log("Duck key released");
           break;
       }
     };
 
-    document.addEventListener('keydown', handleKeyDown);
-    document.addEventListener('keyup', handleKeyUp);
+    if (gameContainerRef.current) {
+      gameContainerRef.current.focus();
+    }
+
+    window.addEventListener('keydown', handleKeyDown, { capture: true });
+    window.addEventListener('keyup', handleKeyUp, { capture: true });
 
     return () => {
-      document.removeEventListener('keydown', handleKeyDown);
-      document.removeEventListener('keyup', handleKeyUp);
+      controlsActive.current = false;
+      window.removeEventListener('keydown', handleKeyDown, { capture: true });
+      window.removeEventListener('keyup', handleKeyUp, { capture: true });
     };
   }, [isPlaying, isPaused, dispatch]);
 
-  // Pause screen component
+  useEffect(() => {
+    if (isPlaying && !isPaused && gameContainerRef.current) {
+      gameContainerRef.current.focus();
+      console.log("Game container focused");
+    }
+  }, [isPlaying, isPaused]);
+
   const PauseScreen = () => (
     isPaused ? (
       <div className="absolute inset-0 flex flex-col items-center justify-center z-30 bg-black/50 backdrop-blur-sm">
@@ -379,7 +379,6 @@ const GameCanvas: React.FC = () => {
     ) : null
   );
 
-  // Game Over screen component
   const GameOverScreen = () => (
     state.gameOver ? (
       <div className="absolute inset-0 flex flex-col items-center justify-center z-30 bg-black/60 backdrop-blur-sm">
@@ -409,40 +408,16 @@ const GameCanvas: React.FC = () => {
     ) : null
   );
 
-  // Element tutorial shown at start
-  const ElementTutorial = () => (
-    tutorialVisible && state.level === 1 && !isPaused ? (
-      <motion.div 
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: -20 }}
-        transition={{ duration: 0.5 }}
-        className="absolute top-40 left-1/2 -translate-x-1/2 text-white text-center z-10 p-5 bg-black/80 rounded-md backdrop-blur-md max-w-lg shadow-xl border border-white/20"
-      >
-        <h3 className="font-bold text-xl mb-3">Element Powers</h3>
-        <p className="mb-3 text-base">Each element has unique abilities and strengths against enemies:</p>
-        <div className="grid grid-cols-2 gap-3 text-base mb-4">
-          <div className="text-left"><span className="font-bold text-red-400">Fire:</span> Strong against Air, weak to Water</div>
-          <div className="text-left"><span className="font-bold text-blue-400">Water:</span> Strong against Fire, weak to Earth</div>
-          <div className="text-left"><span className="font-bold text-green-400">Earth:</span> Strong against Water, weak to Air</div>
-          <div className="text-left"><span className="font-bold text-purple-400">Air:</span> Strong against Earth, weak to Fire</div>
-        </div>
-        <p className="mt-3 text-sm text-white">Press the buttons below or number keys 1-5 to switch elements</p>
-      </motion.div>
-    ) : null
-  );
-
-  // Start playing prompt with enhanced controls
   const StartPlayingPrompt = () => (
-    isPlaying && !isPaused && state.level === 1 ? (
+    isPlaying && !isPaused && state.level === 1 && tutorialVisible ? (
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: -20, transition: { duration: 0.4 } }}
         transition={{ duration: 0.5, delay: 0.3 }}
-        className="absolute bottom-24 right-10 text-white text-center z-40"
+        className="absolute bottom-32 right-10 text-white text-center z-40"
       >
-        <div className="glass-panel border border-white/30 p-6 rounded-lg shadow-xl flex flex-col items-center backdrop-blur-md">
+        <div className="glass-panel border border-white/30 p-6 rounded-lg shadow-xl flex flex-col items-center backdrop-blur-md bg-black/30">
           <p className="text-2xl font-bold mb-4 text-gradient">Game Controls</p>
           
           <div className="grid grid-cols-2 gap-x-5 gap-y-2 mb-5 text-left">
@@ -503,75 +478,6 @@ const GameCanvas: React.FC = () => {
     ) : null
   );
 
-  // Render spirits at the bottom in the tutorial level
-  const renderTutorialSpirits = () => {
-    if (!isTutorialLevel) return null;
-    
-    // Filter out the 'spirit' element completely
-    const displayElements = state.availableElements.filter(element => element !== 'spirit');
-    
-    return (
-      <div className="absolute bottom-40 left-1/2 -translate-x-1/2 flex space-x-16">
-        {displayElements.map((element, index) => (
-          <Spirit
-            key={`spirit-intro-${element}`}
-            element={element}
-            x={0}
-            y={480}
-            size={60}
-            glowing
-            clickable
-            onClick={() => dispatch({ type: 'CHANGE_ELEMENT', payload: element })}
-          />
-        ))}
-      </div>
-    );
-  };
-
-  // Additional component to render spirit form circles at the top with correct positioning
-  const SpiritCircles = () => {
-    if (!isTutorialLevel) return null;
-    
-    return (
-      <div className="absolute top-40 left-0 right-0 flex justify-center items-center w-full">
-        <div className="flex gap-16">
-          {state.availableElements.map((element) => (
-            <div 
-              key={`spirit-circle-${element}`}
-              className="flex flex-col items-center"
-            >
-              <div 
-                className="w-16 h-16 rounded-full flex items-center justify-center mb-2"
-                style={{
-                  background: element === 'fire' ? 'radial-gradient(circle, #ff5c5c, #ff0000)'
-                    : element === 'water' ? 'radial-gradient(circle, #5ccdff, #0088ff)'
-                    : element === 'earth' ? 'radial-gradient(circle, #5cff5c, #00a000)'
-                    : element === 'air' ? 'radial-gradient(circle, #d9c7ff, #9975ff)'
-                    : 'radial-gradient(circle, #ffffff, #cccccc)',
-                  boxShadow: `0 0 20px ${
-                    element === 'fire' ? '#ff5c5c' 
-                    : element === 'water' ? '#5ccdff'
-                    : element === 'earth' ? '#5cff5c'
-                    : element === 'air' ? '#d9c7ff'
-                    : '#ffffff'
-                  }`,
-                }}
-              >
-                {element === 'fire' && <Flame size={24} color="#ffffff" />}
-                {element === 'water' && <Droplet size={24} color="#ffffff" />}
-                {element === 'earth' && <Leaf size={24} color="#ffffff" />}
-                {element === 'air' && <Wind size={24} color="#ffffff" />}
-                {element === 'spirit' && <div className="w-3 h-3 bg-white rounded-full" />}
-              </div>
-              <div className="text-white capitalize text-sm font-medium">{element}</div>
-            </div>
-          ))}
-        </div>
-      </div>
-    );
-  };
-
-  // Determine camera position for proper player following
   const cameraPosition = cameraLocked
     ? "translate3d(0px, 0px, 0px)"
     : `translate3d(${Math.min(
@@ -582,14 +488,13 @@ const GameCanvas: React.FC = () => {
   return (
     <div
       ref={gameContainerRef}
-      className="game-container relative overflow-hidden bg-gradient-to-b from-gray-900 via-gray-800 to-black"
+      className="game-container relative overflow-hidden bg-gradient-to-b from-gray-900 via-gray-800 to-black focus:outline-none"
       style={{
         width: '100%',
         height: '100%'
       }}
       tabIndex={0}
     >
-      {/* Dynamic background elements based on current element */}
       <div
         className="absolute inset-0 opacity-20"
         style={{
@@ -598,7 +503,6 @@ const GameCanvas: React.FC = () => {
         }}
       ></div>
 
-      {/* Element-specific ambient effects */}
       <div className="absolute inset-0 pointer-events-none">
         {state.player.currentElement === 'fire' && (
           <div className="absolute inset-0 bg-gradient-to-t from-red-900/30 to-transparent"></div>
@@ -614,16 +518,13 @@ const GameCanvas: React.FC = () => {
         )}
       </div>
 
-      {/* Game elements container with proper hardware acceleration */}
       <div className="absolute inset-0">
-        {/* Camera follows player horizontally with dynamic positioning */}
         <div
           className="absolute will-change-transform hardware-accelerated"
           style={{
             transform: cameraPosition
           }}
         >
-          {/* Platforms */}
           {state.platforms.map((platform, index) => (
             <Platform
               key={`platform-${index}`}
@@ -636,43 +537,31 @@ const GameCanvas: React.FC = () => {
             />
           ))}
 
-          {/* Tutorial spirits (only show in tutorial level) */}
-          {renderTutorialSpirits()}
-
-          {/* Enemies */}
           {state.enemies.map((enemy) => (
             <Enemy key={`enemy-${enemy.id}`} enemy={enemy} />
           ))}
 
-          {/* Projectiles */}
           {state.projectiles.map((projectile) => (
             <Projectile key={`projectile-${projectile.id}`} projectile={projectile} />
           ))}
 
-          {/* Player */}
           <Player />
         </div>
       </div>
 
-      {/* Game UI layers */}
       <GameHUD />
       <ElementSelection />
       
       <AnimatePresence>
         {tutorialVisible && (
-          <>
-            <ElementTutorial />
-            <StartPlayingPrompt />
-          </>
+          <StartPlayingPrompt />
         )}
       </AnimatePresence>
       
       <PauseScreen />
       <GameOverScreen />
       <LevelTransition />
-      <SpiritCircles />
       
-      {/* Mobile controls overlay (for touch devices) */}
       <div className="md:hidden absolute bottom-20 left-4 right-4 z-30 flex justify-between">
         <div className="flex gap-2">
           <button
@@ -713,8 +602,6 @@ const GameCanvas: React.FC = () => {
           </button>
         </div>
       </div>
-    </div>
-  );
-};
+      
+      {
 
-export default GameCanvas;
