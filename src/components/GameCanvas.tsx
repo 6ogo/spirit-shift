@@ -100,6 +100,15 @@ const getElementIcon = (element) => {
 // Updated Element selection UI to appear at the bottom with proper icons
 const ElementSelection = () => {
   const { state, dispatch, elementColors, elementNames } = useGame();
+  
+  // Map element to number key
+  const elementKeyMap = {
+    'spirit': '1',
+    'fire': '2',
+    'water': '3',
+    'earth': '4',
+    'air': '5'
+  };
 
   return (
     <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-20 flex space-x-6">
@@ -121,6 +130,11 @@ const ElementSelection = () => {
             dispatch({ type: 'CHANGE_ELEMENT', payload: element });
           }}
         >
+          {/* Number displayed above the element */}
+          <div className="absolute -top-7 w-6 h-6 bg-black/50 rounded-full flex items-center justify-center text-white border border-white/30">
+            {elementKeyMap[element]}
+          </div>
+          
           {getElementIcon(element)}
           <div className="absolute -bottom-6 text-sm whitespace-nowrap text-center text-white">
             {elementNames[element]}
@@ -493,14 +507,21 @@ const GameCanvas: React.FC = () => {
   const renderTutorialSpirits = () => {
     if (!isTutorialLevel) return null;
     
+    // Filter out the 'spirit' element completely
+    const displayElements = state.availableElements.filter(element => element !== 'spirit');
+    
     return (
       <div className="absolute bottom-40 left-1/2 -translate-x-1/2 flex space-x-16">
-        {state.availableElements.map((element, index) => (
+        {displayElements.map((element, index) => (
           <Spirit
             key={`spirit-intro-${element}`}
             element={element}
-            x={0} // Center position
-            y={480} // Near the bottom
+            x={0}
+            y={480}
+            size={60}
+            glowing
+            clickable
+            onClick={() => dispatch({ type: 'CHANGE_ELEMENT', payload: element })}
           />
         ))}
       </div>

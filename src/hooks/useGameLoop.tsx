@@ -164,7 +164,8 @@ export const useGameLoop = ({ fps = 60 }: GameLoopProps = {}) => {
     let playerWidth = state.player.width;
     let playerHeight = state.player.height;
 
-    // Apply movement based on player's movement flags - FIXED: Ensure velocity is applied correctly
+    // Apply movement based on player's movement flags - FIXED: Always apply velocity correctly
+    // This ensures movement always works regardless of state
     if (state.player.isMovingLeft) {
       velocityX = state.player.isDucking ? -3 : -5;
     } else if (state.player.isMovingRight) {
@@ -203,9 +204,6 @@ export const useGameLoop = ({ fps = 60 }: GameLoopProps = {}) => {
             velocityY = 0;
             landed = true;
             platformLandedOn = platform;
-            
-            // Show landed on platform effect
-            // dispatch({type: 'SPAWN_EFFECT', payload: {type: 'land', x: playerX, y: playerY}});
             break;
           }
         }
@@ -234,6 +232,16 @@ export const useGameLoop = ({ fps = 60 }: GameLoopProps = {}) => {
       playerY = 800;
       dispatch({ type: 'SET_ON_PLATFORM', payload: true });
     }
+
+    // Always update the player position with the current values
+    dispatch({
+      type: 'PLAYER_MOVE_WITH_VELOCITY',
+      payload: {
+        x: playerX,
+        y: playerY,
+        velocityY: velocityY
+      }
+    });
 
     // Update projectiles - THIS SHOULD RUN REGARDLESS OF PLAYER STATE
     dispatch({ type: 'UPDATE_PROJECTILES' });

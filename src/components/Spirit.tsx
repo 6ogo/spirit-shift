@@ -6,17 +6,26 @@ interface SpiritProps {
   element: ElementType;
   x: number;
   y: number;
+  size?: number;
+  glowing?: boolean;
+  clickable?: boolean;
+  onClick?: () => void;
   onPossess?: () => void;
 }
 
-const Spirit: React.FC<SpiritProps> = ({ element, x, y, onPossess }) => {
+const Spirit: React.FC<SpiritProps> = ({ element, x, y, size = 56, glowing = false, clickable = false, onClick, onPossess }) => {
   const { state, dispatch, elementColors, elementNames } = useGame();
   const [isHovered, setIsHovered] = useState(false);
   
   const handleClick = () => {
-    // Change element on click
-    dispatch({ type: 'CHANGE_ELEMENT', payload: element });
-    if (onPossess) onPossess();
+    // Call the onClick handler if provided
+    if (onClick) {
+      onClick();
+    } else {
+      // Change element on click
+      dispatch({ type: 'CHANGE_ELEMENT', payload: element });
+      if (onPossess) onPossess();
+    }
   };
   
   // Get element icon/symbol
@@ -37,7 +46,7 @@ const Spirit: React.FC<SpiritProps> = ({ element, x, y, onPossess }) => {
       exit={{ opacity: 0, scale: 0.9 }}
       whileHover={{ scale: 1.1, y: -8 }}
       whileTap={{ scale: 0.95 }}
-      className="absolute cursor-pointer"
+      className={`absolute ${clickable ? 'cursor-pointer' : ''}`}
       style={{ 
         left: x, 
         top: y,
@@ -48,10 +57,12 @@ const Spirit: React.FC<SpiritProps> = ({ element, x, y, onPossess }) => {
       onClick={handleClick} // Add direct click handler to the container
     >
       <div 
-        className={`w-14 h-14 rounded-full flex items-center justify-center transition-all duration-300 ${isHovered ? 'shadow-lg' : ''}`}
+        className={`rounded-full flex items-center justify-center transition-all duration-300 ${isHovered ? 'shadow-lg' : ''}`}
         style={{ 
-          backgroundColor: elementColors[element],
-          boxShadow: `0 0 ${isHovered ? '15px 5px' : '10px 2px'} ${elementColors[element]}80`
+          width: `${size}px`,
+          height: `${size}px`,
+          backgroundColor: elementColors[element], 
+          boxShadow: glowing || isHovered ? `0 0 15px ${elementColors[element]}` : 'none' 
         }}
       >
         <div className="text-xl font-bold text-white flex flex-col items-center">

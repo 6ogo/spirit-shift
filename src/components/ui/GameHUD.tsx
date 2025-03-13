@@ -103,10 +103,10 @@ const GameHUD: React.FC = () => {
             <motion.div
               key={player.currentElement}
               initial={{ opacity: 25, y: 10 }}
-              animate={{ opacity: 35, y: 0 }}
+              animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.3 }}
-              className="text-center text-sm max-w-sm mx-auto mt-4 bg-black/40 p-3 rounded-lg"
+              className="text-center text-sm max-w-sm mx-auto mt-4 bg-black/80 p-4 rounded-lg border border-white/20 shadow-xl backdrop-blur-md font-medium"
             >
               {player.currentElement === 'fire' && (
                 <span>Fire spirits move quickly and regenerate energy faster.</span>
