@@ -1,4 +1,3 @@
-
 import React, { useEffect, useRef, useState } from 'react';
 import { useGame, Platform } from '@/contexts/GameContext';
 import { motion } from 'framer-motion';
@@ -53,6 +52,7 @@ export const useGameLoop = ({ fps = 60 }: GameLoopProps = {}) => {
 
   // Store the last position to detect movement issues
   const lastPositionRef = useRef({ x: 0, y: 0 });
+  const movementDebugRef = useRef({ lastLogTime: 0 });
 
   const gameLoop = (time: number) => {
     if (previousTimeRef.current === undefined) {
@@ -165,28 +165,42 @@ export const useGameLoop = ({ fps = 60 }: GameLoopProps = {}) => {
     let playerWidth = state.player.width;
     let playerHeight = state.player.height;
 
-    // REVAMPED MOVEMENT LOGIC: Use direct flags from state instead of relying on velocityX
-    // This ensures the player always moves when movement keys are pressed
-    const baseSpeed = state.player.isDucking ? 3 : 5;
+    // COMPLETELY REVAMPED MOVEMENT LOGIC:
+    // Set movement speed based on element and ducking state
+    let baseSpeed = state.player.isDucking ? 3 : 5;
     
+    // Apply element-specific speed modifiers
+    switch (state.player.currentElement) {
+      case 'air':
+        baseSpeed *= 1.3; // Air is faster
+        break;
+      case 'earth':
+        baseSpeed *= 0.85; // Earth is slower but more powerful
+        break;
+      default:
+        // Other elements use default speed
+        break;
+    }
+    
+    // Always reset velocity and apply movement based on input flags
     if (state.player.isMovingLeft) {
-      // Force set the velocity for left movement
       velocityX = -baseSpeed;
     } else if (state.player.isMovingRight) {
-      // Force set the velocity for right movement
       velocityX = baseSpeed;
     } else {
       // Only reset to zero when not moving
       velocityX = 0;
     }
 
-    // Apply horizontal movement with proper scaling
+    // Apply horizontal movement with proper scaling to deltaTime
     const moveStep = velocityX * 60 * cappedDelta;
     playerX += moveStep;
     
-    // Log movement to debug
-    if (Math.abs(moveStep) > 0) {
-      console.log(`Moving player: direction=${velocityX > 0 ? 'right' : 'left'}, step=${moveStep}, isMovingLeft=${state.player.isMovingLeft}, isMovingRight=${state.player.isMovingRight}`);
+    // Regularly log movement debugging info
+    const now = Date.now();
+    if (now - movementDebugRef.current.lastLogTime > 500 && Math.abs(velocityX) > 0) {
+      console.log(`Moving player: dir=${velocityX > 0 ? 'right' : 'left'}, vel=${velocityX}, step=${moveStep.toFixed(2)}, isMovingLeft=${state.player.isMovingLeft}, isMovingRight=${state.player.isMovingRight}`);
+      movementDebugRef.current.lastLogTime = now;
     }
     
     // Ensure player doesn't go off-screen horizontally
@@ -278,7 +292,7 @@ export const useGameLoop = ({ fps = 60 }: GameLoopProps = {}) => {
 
     const newEnergy = Math.min(state.player.maxEnergy, state.player.energy + energyRegen);
 
-    // Update player energy and log position for debug
+    // Update player energy
     dispatch({
       type: 'UPDATE_PLAYER',
       payload: {
@@ -288,10 +302,8 @@ export const useGameLoop = ({ fps = 60 }: GameLoopProps = {}) => {
 
     // Debug logging for movement issues
     if (Math.abs(lastPositionRef.current.x - playerX) > 0.1) {
-      console.log(`Player moved from ${lastPositionRef.current.x} to ${playerX}`);
+      lastPositionRef.current = { x: playerX, y: playerY };
     }
-
-    lastPositionRef.current = { x: playerX, y: playerY };
   };
 
   // Set up and clean up game loop with requestAnimationFrame

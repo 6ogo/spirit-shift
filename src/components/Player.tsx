@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { useGame, ElementType } from '@/contexts/GameContext';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -96,6 +97,34 @@ const Player: React.FC<PlayerProps> = ({ width = 40, height = 50 }) => {
       return { scale: [1, 1.05, 1], y: [0, -5, 0] };
     }
     return {};
+  };
+
+  // Add movement indicators
+  const MovementIndicator = () => {
+    if (!player.isMovingLeft && !player.isMovingRight) return null;
+    
+    const direction = player.isMovingLeft ? 'left' : 'right';
+    
+    return (
+      <motion.div
+        className="absolute bottom-0 left-1/2 -translate-x-1/2 opacity-50"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: [0.2, 0.5, 0.2] }}
+        transition={{ duration: 0.5, repeat: Infinity }}
+      >
+        <div className="relative">
+          <div 
+            className="absolute w-20 h-1 rounded-full"
+            style={{
+              backgroundColor: elementColors[player.currentElement],
+              bottom: -5,
+              left: direction === 'left' ? '-20px' : '0',
+              transform: direction === 'left' ? 'scaleX(-1)' : 'scaleX(1)'
+            }}
+          />
+        </div>
+      </motion.div>
+    );
   };
   
   return (
@@ -242,6 +271,9 @@ const Player: React.FC<PlayerProps> = ({ width = 40, height = 50 }) => {
               }}
             />
           )}
+          
+          {/* Movement indicator (shows current movement direction) */}
+          <MovementIndicator />
           
           {/* Element particles effect */}
           <Particles />

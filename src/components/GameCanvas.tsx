@@ -1,11 +1,9 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGame } from '@/contexts/GameContext';
 import { useGameLoop, LevelTransition } from '@/hooks/useGameLoop';
 import Player from './Player';
 import Platform from './Platform';
-import Spirit from './Spirit';
 import GameHUD from './ui/GameHUD';
 import { Play, Home, RotateCcw, Flame, Droplet, Leaf, Wind, Ghost, ArrowRight } from 'lucide-react';
 
@@ -390,8 +388,6 @@ const GameCanvas: React.FC = () => {
     ) : null
   );
 
-  // Removed ElementTutorial component as requested
-
   const StartPlayingPrompt = () => (
     isPlaying && !isPaused && state.level === 1 && tutorialVisible ? (
       <motion.div
@@ -401,7 +397,7 @@ const GameCanvas: React.FC = () => {
         transition={{ duration: 0.5, delay: 0.3 }}
         className="absolute bottom-32 right-10 text-white text-center z-40"
       >
-        <div className="glass-panel border border-white/30 p-6 rounded-lg shadow-xl flex flex-col items-center backdrop-blur-md bg-black/70">
+        <div className="glass-panel border border-white/30 p-6 rounded-lg shadow-xl flex flex-col items-center backdrop-blur-md bg-black/30">
           <p className="text-2xl font-bold mb-4 text-gradient">Game Controls</p>
           
           <div className="grid grid-cols-2 gap-x-5 gap-y-2 mb-5 text-left">
@@ -461,8 +457,6 @@ const GameCanvas: React.FC = () => {
       </motion.div>
     ) : null
   );
-
-  // Removed SpiritCircles component as requested
 
   const cameraPosition = cameraLocked
     ? "translate3d(0px, 0px, 0px)"
@@ -540,9 +534,7 @@ const GameCanvas: React.FC = () => {
       
       <AnimatePresence>
         {tutorialVisible && (
-          <>
-            <StartPlayingPrompt />
-          </>
+          <StartPlayingPrompt />
         )}
       </AnimatePresence>
       
