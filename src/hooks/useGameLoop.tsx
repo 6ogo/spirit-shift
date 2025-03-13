@@ -198,28 +198,51 @@ export const useGameLoop = ({ fps = 60 }: GameLoopProps = {}) => {
       velocityX = 0;
     }
 
-    // Apply horizontal movement with proper scaling to deltaTime
-    // CRITICAL FIX: Make sure movement is actually significant - multiplying by 3 for visibility
-    const moveStep = velocityX * 60 * cappedDelta * 3;
-    const previousX = playerX;
-    playerX += moveStep;
-    
-    if (Math.abs(previousX - playerX) > 0.1) {
-      console.log(`Player X changed from ${previousX.toFixed(2)} to ${playerX.toFixed(2)} (delta: ${(playerX - previousX).toFixed(2)})`);
-    }
-    
-    // Debug logging for player movement state
-    const now = Date.now();
-    if (now - movementDebugRef.current.lastLogTime > 1000) {
-      console.log(`MOVEMENT DEBUG: 
+    // CRITICAL FIX - Force movement by directly manipulating player position
+    const forceMovement = () => {
+      // Debug output before movement calculation
+      console.log(`MOVEMENT DEBUG (before): 
         position: x=${playerX.toFixed(1)}, y=${playerY.toFixed(1)}
         velocity: velocityX=${velocityX.toFixed(1)}, velocityY=${velocityY.toFixed(1)}
         flags: isMovingLeft=${state.player.isMovingLeft}, isMovingRight=${state.player.isMovingRight}
-        step: moveStep=${moveStep.toFixed(2)}
-        delta: ${cappedDelta.toFixed(4)}
-      `);
-      movementDebugRef.current.lastLogTime = now;
-    }
+        delta: ${cappedDelta.toFixed(4)}`);
+        
+      // Calculate movement
+      const moveStep = velocityX * 60 * cappedDelta * 3;
+      
+      // Debug each calculation step
+      console.log(`MOVEMENT CALCULATION: 
+        velocityX: ${velocityX} 
+        scaling: 60 * ${cappedDelta} = ${60 * cappedDelta}
+        amplification: * 3
+        final moveStep: ${moveStep.toFixed(2)}`);
+      
+      // Store previous position for comparison
+      const previousX = playerX;
+      
+      // Apply movement
+      playerX += moveStep;
+      
+      // Debug output after movement calculation
+      console.log(`MOVEMENT DEBUG (after): 
+        position: x=${playerX.toFixed(1)}, y=${playerY.toFixed(1)}
+        moveStep: ${moveStep.toFixed(2)}
+        change: ${(playerX - previousX).toFixed(2)}`);
+        
+      // CRITICAL FIX: If no movement is being calculated from velocity, force it based on flags
+      if (Math.abs(moveStep) < 0.01) {
+        if (state.player.isMovingLeft) {
+          playerX -= 3; // Force move left by 3px
+          console.log("FORCING LEFT MOVEMENT: " + playerX);
+        } else if (state.player.isMovingRight) {
+          playerX += 3; // Force move right by 3px
+          console.log("FORCING RIGHT MOVEMENT: " + playerX);
+        }
+      }
+    };
+    
+    // Apply player movement
+    forceMovement();
     
     // Ensure player doesn't go off-screen horizontally
     playerX = Math.max(playerWidth / 2, Math.min(1600 - playerWidth / 2, playerX));

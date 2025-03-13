@@ -230,16 +230,32 @@ const GameCanvas: React.FC = () => {
 
   useEffect(() => {
     console.log("Setting up keyboard controls in GameCanvas");
+    
+    const gameContainer = gameContainerRef.current;
+    
+    if (!gameContainer) {
+      console.error("Game container ref is null!");
+      return;
+    }
+    
     controlsActive.current = true;
+    
+    console.log("Adding keyboard event listeners to game container:", gameContainer);
+    
+    gameContainer.focus();
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      console.log(`Key down: ${e.key}, keyCode: ${e.keyCode}, isPaused: ${isPaused}`);
+      // CRITICAL DEBUG: Force log every key press
+      console.log(`KEY EVENT DEBUG - Key down: ${e.key}, keyCode: ${e.keyCode}, isPaused: ${isPaused}, active: ${controlsActive.current}, target: ${e.target ? (e.target as Element).tagName : 'unknown'}`);
       
-      if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' ', 'w', 'a', 's', 'd'].includes(e.key)) {
+      // CRITICAL FIX: Fix key handling for WASD and arrow keys
+      const key = e.key.toLowerCase();
+      
+      if (['arrowup', 'arrowdown', 'arrowleft', 'arrowright', ' ', 'w', 'a', 's', 'd'].includes(key)) {
         e.preventDefault();
       }
       
-      if (e.key.toLowerCase() === 'escape') {
+      if (key === 'escape') {
         dispatch({ type: 'PAUSE_GAME' });
         return;
       }
@@ -248,13 +264,14 @@ const GameCanvas: React.FC = () => {
       
       const now = Date.now();
       if (now - keyPressRef.current.lastLog > 1000) {
-        console.log("Key press detected:", e.key.toLowerCase());
+        console.log("Key press detected:", key);
         keyPressRef.current.lastLog = now;
       }
       
       let updatePosition = false;
       
-      switch (e.key.toLowerCase()) {
+      // CRITICAL FIX: Use key.toLowerCase() consistently for case-insensitive matching
+      switch (key) {
         case 'w':
         case 'arrowup':
           dispatch({ type: 'PLAYER_JUMP' });
@@ -264,12 +281,16 @@ const GameCanvas: React.FC = () => {
         case 'arrowleft':
           console.log("Left movement key pressed - setting isMovingLeft to true");
           dispatch({ type: 'PLAYER_MOVE_LEFT', payload: true });
+          // CRITICAL FIX: Force immediate directional move
+          dispatch({ type: 'SET_PLAYER_VELOCITY_X', payload: -10 });
           updatePosition = true;
           break;
         case 'd':
         case 'arrowright':
           console.log("Right movement key pressed - setting isMovingRight to true");
           dispatch({ type: 'PLAYER_MOVE_RIGHT', payload: true });
+          // CRITICAL FIX: Force immediate directional move
+          dispatch({ type: 'SET_PLAYER_VELOCITY_X', payload: 10 });
           updatePosition = true;
           break;
         case 's':
@@ -328,17 +349,13 @@ const GameCanvas: React.FC = () => {
       }
     };
 
-    if (gameContainerRef.current) {
-      gameContainerRef.current.focus();
-    }
-
-    window.addEventListener('keydown', handleKeyDown, { capture: true });
-    window.addEventListener('keyup', handleKeyUp, { capture: true });
+    gameContainer.addEventListener('keydown', handleKeyDown, { capture: true });
+    gameContainer.addEventListener('keyup', handleKeyUp, { capture: true });
 
     return () => {
       controlsActive.current = false;
-      window.removeEventListener('keydown', handleKeyDown, { capture: true });
-      window.removeEventListener('keyup', handleKeyUp, { capture: true });
+      gameContainer.removeEventListener('keydown', handleKeyDown, { capture: true });
+      gameContainer.removeEventListener('keyup', handleKeyUp, { capture: true });
     };
   }, [isPlaying, isPaused, dispatch]);
 
@@ -488,6 +505,53 @@ const GameCanvas: React.FC = () => {
     ) : null
   );
 
+  const renderDebugUI = () => {
+    if (!state.isPlaying) return null;
+    
+    const handleMoveLeft = () => {
+      dispatch({ type: 'PLAYER_MOVE_LEFT', payload: true });
+      dispatch({ type: 'SET_PLAYER_VELOCITY_X', payload: -5 });
+    };
+    
+    const handleMoveRight = () => {
+      dispatch({ type: 'PLAYER_MOVE_RIGHT', payload: true });
+      dispatch({ type: 'SET_PLAYER_VELOCITY_X', payload: 5 });
+    };
+    
+    const handleJump = () => {
+      dispatch({ type: 'PLAYER_JUMP' });
+    };
+    
+    return (
+      <div className="absolute bottom-5 left-0 right-0 flex justify-center gap-4 z-50">
+        <button 
+          className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+          onMouseDown={handleMoveLeft}
+          onMouseUp={() => dispatch({ type: 'PLAYER_MOVE_LEFT', payload: false })}
+          onTouchStart={handleMoveLeft}
+          onTouchEnd={() => dispatch({ type: 'PLAYER_MOVE_LEFT', payload: false })}
+        >
+          ← Left
+        </button>
+        <button 
+          className="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded"
+          onClick={handleJump}
+        >
+          Jump
+        </button>
+        <button 
+          className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+          onMouseDown={handleMoveRight}
+          onMouseUp={() => dispatch({ type: 'PLAYER_MOVE_RIGHT', payload: false })}
+          onTouchStart={handleMoveRight}
+          onTouchEnd={() => dispatch({ type: 'PLAYER_MOVE_RIGHT', payload: false })}
+        >
+          Right →
+        </button>
+      </div>
+    );
+  };
+
   const cameraPosition = cameraLocked
     ? "translate3d(0px, 0px, 0px)"
     : `translate3d(${Math.min(
@@ -508,6 +572,31 @@ const GameCanvas: React.FC = () => {
       }, 1000);
     }
   }, [isPlaying]);
+
+  const [showDebugControls, setShowDebugControls] = useState(false);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (state.isPlaying && !state.isPaused) {
+        dispatch({ type: 'PLAYER_MOVE', payload: { x: state.player.x + 1, y: state.player.y } });
+        console.log("FORCED MOVEMENT: Moving player to x=" + (state.player.x + 1));
+      }
+    }, 100);
+
+    const handleDebugKey = (e: KeyboardEvent) => {
+      if (e.key === '`') {
+        setShowDebugControls(prev => !prev);
+        console.log("Debug controls toggled:", !showDebugControls);
+      }
+    };
+
+    window.addEventListener('keydown', handleDebugKey);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('keydown', handleDebugKey);
+    };
+  }, [state.isPlaying, state.isPaused, state.player.x, state.player.y, dispatch]);
 
   return (
     <div
@@ -626,6 +715,7 @@ const GameCanvas: React.FC = () => {
           </button>
         </div>
       </div>
+      {renderDebugUI()}
     </div>
   );
 };

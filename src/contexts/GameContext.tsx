@@ -94,6 +94,7 @@ type GameAction =
   | { type: 'UPDATE_VELOCITY_Y', payload: number }
   | { type: 'PLAYER_MOVE_LEFT', payload: boolean }
   | { type: 'PLAYER_MOVE_RIGHT', payload: boolean }
+  | { type: 'SET_PLAYER_VELOCITY_X', payload: number }
   | { type: 'PLAYER_DUCK', payload: boolean }
   | { type: 'PLAYER_JUMP' }
   | { type: 'PLAYER_LAND', payload: { platformY: number } }
@@ -422,6 +423,14 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
         },
       };
     }
+    case 'SET_PLAYER_VELOCITY_X':
+      return {
+        ...state,
+        player: {
+          ...state.player,
+          velocityX: action.payload,
+        },
+      };
     case 'PLAYER_DUCK': {
       return {
         ...state,
