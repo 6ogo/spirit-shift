@@ -157,44 +157,67 @@ export const useGameLoop = ({ fps = 60 }: GameLoopProps = {}) => {
     // Update player position directly from state
     let playerX = state.player.x;
     let playerY = state.player.y;
-    let velocityX = state.player.velocityX;
     let velocityY = state.player.velocityY;
     let playerWidth = state.player.width;
     let playerHeight = state.player.height;
 
-    // FIXED: Apply movement with proper velocity calculation
-    let baseSpeed = state.player.isDucking ? 3 : 5;
+    console.log(`Current game state: isPlaying=${state.isPlaying}, isPaused=${state.isPaused}`);
+    console.log(`Player flags: isMovingLeft=${state.player.isMovingLeft}, isMovingRight=${state.player.isMovingRight}`);
     
-    // Apply element-specific speed modifiers
-    switch (state.player.currentElement) {
-      case 'air':
-        baseSpeed *= 1.3; // Air is faster
-        break;
-      case 'earth':
-        baseSpeed *= 0.85; // Earth is slower
-        break;
-      default:
-        // Other elements use default speed
-        break;
-    }
+    // Get velocityX directly from player state - CRITICAL FIX
+    let velocityX = 0;
     
-    // CRITICAL FIX: directly calculate velocityX based on movement flags
+    // CRITICAL FIX: Make sure we actually calculate movement based on keyboard input
     if (state.player.isMovingLeft && !state.player.isMovingRight) {
+      // Moving left
+      let baseSpeed = state.player.isDucking ? 3 : 5;
+      
+      // Apply element-specific modifiers
+      if (state.player.currentElement === 'air') {
+        baseSpeed *= 1.3;
+      } else if (state.player.currentElement === 'earth') {
+        baseSpeed *= 0.85;
+      }
+      
       velocityX = -baseSpeed;
+      console.log(`Setting velocityX to ${velocityX} (moving left)`);
     } else if (state.player.isMovingRight && !state.player.isMovingLeft) {
+      // Moving right
+      let baseSpeed = state.player.isDucking ? 3 : 5;
+      
+      // Apply element-specific modifiers
+      if (state.player.currentElement === 'air') {
+        baseSpeed *= 1.3;
+      } else if (state.player.currentElement === 'earth') {
+        baseSpeed *= 0.85;
+      }
+      
       velocityX = baseSpeed;
+      console.log(`Setting velocityX to ${velocityX} (moving right)`);
     } else {
       velocityX = 0;
     }
 
     // Apply horizontal movement with proper scaling to deltaTime
-    const moveStep = velocityX * 60 * cappedDelta;
+    // CRITICAL FIX: Make sure movement is actually significant - multiplying by 3 for visibility
+    const moveStep = velocityX * 60 * cappedDelta * 3;
+    const previousX = playerX;
     playerX += moveStep;
     
-    // Regularly log movement debugging info
+    if (Math.abs(previousX - playerX) > 0.1) {
+      console.log(`Player X changed from ${previousX.toFixed(2)} to ${playerX.toFixed(2)} (delta: ${(playerX - previousX).toFixed(2)})`);
+    }
+    
+    // Debug logging for player movement state
     const now = Date.now();
-    if (now - movementDebugRef.current.lastLogTime > 500) {
-      console.log(`MOVEMENT DEBUG: x=${playerX.toFixed(1)}, vel=${velocityX.toFixed(1)}, step=${moveStep.toFixed(2)}, isMovingLeft=${state.player.isMovingLeft}, isMovingRight=${state.player.isMovingRight}`);
+    if (now - movementDebugRef.current.lastLogTime > 1000) {
+      console.log(`MOVEMENT DEBUG: 
+        position: x=${playerX.toFixed(1)}, y=${playerY.toFixed(1)}
+        velocity: velocityX=${velocityX.toFixed(1)}, velocityY=${velocityY.toFixed(1)}
+        flags: isMovingLeft=${state.player.isMovingLeft}, isMovingRight=${state.player.isMovingRight}
+        step: moveStep=${moveStep.toFixed(2)}
+        delta: ${cappedDelta.toFixed(4)}
+      `);
       movementDebugRef.current.lastLogTime = now;
     }
     
@@ -260,6 +283,7 @@ export const useGameLoop = ({ fps = 60 }: GameLoopProps = {}) => {
       payload: {
         x: playerX,
         y: playerY,
+        velocityX: velocityX,
         velocityY: velocityY
       }
     });

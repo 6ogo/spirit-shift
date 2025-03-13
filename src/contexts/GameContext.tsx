@@ -89,7 +89,8 @@ type GameAction =
   | { type: 'GAME_OVER' }
   | { type: 'UPDATE_PLAYER', payload: Partial<PlayerState> }
   | { type: 'PLAYER_MOVE', payload: { x: number, y: number } }
-  | { type: 'PLAYER_MOVE_WITH_VELOCITY', payload: { x: number, y: number, velocityY: number } }
+  | { type: 'PLAYER_MOVE_WITH_VELOCITY', payload: { x: number, y: number, velocityX: number, velocityY: number } }
+  | { type: 'UPDATE_PLAYER_POSITION' }
   | { type: 'UPDATE_VELOCITY_Y', payload: number }
   | { type: 'PLAYER_MOVE_LEFT', payload: boolean }
   | { type: 'PLAYER_MOVE_RIGHT', payload: boolean }
@@ -366,7 +367,27 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
           ...state.player,
           x: action.payload.x,
           y: action.payload.y,
+          velocityX: action.payload.velocityX,
           velocityY: action.payload.velocityY,
+        },
+      };
+    case 'UPDATE_PLAYER_POSITION':
+      // CRITICAL FIX: Force player movement based on current direction
+      let forceX = state.player.x;
+      
+      if (state.player.isMovingLeft) {
+        forceX = state.player.x - 10; // Move left by 10px
+      } else if (state.player.isMovingRight) {
+        forceX = state.player.x + 10; // Move right by 10px
+      }
+      
+      console.log(`Forcing player position update: ${state.player.x} -> ${forceX}`);
+      
+      return {
+        ...state,
+        player: {
+          ...state.player,
+          x: forceX,
         },
       };
     case 'UPDATE_VELOCITY_Y':

@@ -233,6 +233,8 @@ const GameCanvas: React.FC = () => {
     controlsActive.current = true;
 
     const handleKeyDown = (e: KeyboardEvent) => {
+      console.log(`Key down: ${e.key}, keyCode: ${e.keyCode}, isPaused: ${isPaused}`);
+      
       if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' ', 'w', 'a', 's', 'd'].includes(e.key)) {
         e.preventDefault();
       }
@@ -250,6 +252,8 @@ const GameCanvas: React.FC = () => {
         keyPressRef.current.lastLog = now;
       }
       
+      let updatePosition = false;
+      
       switch (e.key.toLowerCase()) {
         case 'w':
         case 'arrowup':
@@ -260,11 +264,13 @@ const GameCanvas: React.FC = () => {
         case 'arrowleft':
           console.log("Left movement key pressed - setting isMovingLeft to true");
           dispatch({ type: 'PLAYER_MOVE_LEFT', payload: true });
+          updatePosition = true;
           break;
         case 'd':
         case 'arrowright':
           console.log("Right movement key pressed - setting isMovingRight to true");
           dispatch({ type: 'PLAYER_MOVE_RIGHT', payload: true });
+          updatePosition = true;
           break;
         case 's':
         case 'arrowdown':
@@ -293,6 +299,10 @@ const GameCanvas: React.FC = () => {
         case 'f':
           dispatch({ type: 'PLAYER_SHOOT' });
           break;
+      }
+      
+      if (updatePosition) {
+        dispatch({ type: 'UPDATE_PLAYER_POSITION' });
       }
     };
 
@@ -484,6 +494,20 @@ const GameCanvas: React.FC = () => {
         Math.max(windowSize.width / 2 - state.player.x, -800 + windowSize.width / 2),
         0
       )}px, 0px, 0px)`;
+      
+  useEffect(() => {
+    console.log("Player position changed: ", state.player.x, state.player.y);
+    // This empty effect makes sure component re-renders when player position changes
+  }, [state.player.x, state.player.y]);
+  
+  useEffect(() => {
+    if (isPlaying && cameraLocked) {
+      setTimeout(() => {
+        console.log("Unlocking camera to show player movement");
+        setCameraLocked(false);
+      }, 1000);
+    }
+  }, [isPlaying]);
 
   return (
     <div

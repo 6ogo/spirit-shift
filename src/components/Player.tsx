@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useGame, ElementType } from '@/contexts/GameContext';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -144,9 +143,10 @@ const Player: React.FC<PlayerProps> = ({ width = 40, height = 50 }) => {
         top: player.y + "px",
         transform: `translate3d(-50%, -100%, 0) scaleX(${facingDirection === 'left' ? -1 : 1})`,
         filter: isShifting ? 'blur(3px)' : 'none',
-        transition: 'filter 0.3s ease',
+        transition: 'filter 0.3s ease', 
         zIndex: 20
       }}
+      data-testid="player-character"
     >
       <AnimatePresence>
         <motion.div
