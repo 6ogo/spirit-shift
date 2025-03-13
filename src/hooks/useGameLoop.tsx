@@ -1,4 +1,3 @@
-
 import React, { useEffect, useRef, useState } from 'react';
 import { useGame, Platform } from '@/contexts/GameContext';
 import { motion } from 'framer-motion';
@@ -261,7 +260,6 @@ export const useGameLoop = ({ fps = 60 }: GameLoopProps = {}) => {
       payload: {
         x: playerX,
         y: playerY,
-        velocityX: velocityX,
         velocityY: velocityY
       }
     });

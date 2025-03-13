@@ -1,7 +1,6 @@
-
 import React, { useEffect, useState, useRef } from 'react';
 import { GameProvider, useGame } from '@/contexts/GameContext';
-import GameCanvas from '@/components/GameCanvas';
+import { GameCanvas } from '@/components/GameCanvas';
 import MainMenu from '@/components/ui/MainMenu';
 import { motion } from 'framer-motion';
 

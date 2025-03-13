@@ -602,6 +602,8 @@ const GameCanvas: React.FC = () => {
           </button>
         </div>
       </div>
-      
-      {
+    </div>
+  );
+};
 
+export { GameCanvas };
