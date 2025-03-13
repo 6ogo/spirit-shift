@@ -114,7 +114,7 @@ const ElementSelection = () => {
           style={{
             backgroundColor: elementColors[element],
             boxShadow: state.player.currentElement === element
-              ? `0 0 10px 2px ${elementColors[element]}`
+              ? `0 0 10px ${elementColors[element]}`
               : 'none'
           }}
           onClick={() => {
@@ -245,7 +245,13 @@ const GameCanvas: React.FC = () => {
         e.preventDefault();
       }
       
-      // Don't handle controls when game is paused
+      // Handle escape key for pausing regardless of game state
+      if (e.key.toLowerCase() === 'escape') {
+        dispatch({ type: 'PAUSE_GAME' });
+        return;
+      }
+      
+      // Don't handle other controls when game is paused
       if (isPaused) return;
       
       switch (e.key.toLowerCase()) {
@@ -283,9 +289,6 @@ const GameCanvas: React.FC = () => {
         case '5':
           dispatch({ type: 'CHANGE_ELEMENT', payload: 'air' });
           break;
-        case 'escape':
-          dispatch({ type: 'PAUSE_GAME' });
-          break;
         case 'f':
           dispatch({ type: 'PLAYER_SHOOT' });
           break;
@@ -319,7 +322,7 @@ const GameCanvas: React.FC = () => {
       document.removeEventListener('keydown', handleKeyDown);
       document.removeEventListener('keyup', handleKeyUp);
     };
-  }, [isPaused, dispatch]);
+  }, [isPlaying, isPaused, dispatch]);
 
   // Pause screen component
   const PauseScreen = () => (
@@ -400,24 +403,24 @@ const GameCanvas: React.FC = () => {
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: -20 }}
         transition={{ duration: 0.5 }}
-        className="absolute top-40 left-1/2 -translate-x-1/2 text-white text-center z-10 p-4 bg-black/60 rounded-md backdrop-blur-sm max-w-lg"
+        className="absolute top-40 left-1/2 -translate-x-1/2 text-white text-center z-10 p-5 bg-black/80 rounded-md backdrop-blur-md max-w-lg shadow-xl border border-white/20"
       >
         <h3 className="font-bold text-xl mb-3">Element Powers</h3>
-        <p className="mb-3">Each element has unique abilities and strengths against enemies:</p>
-        <div className="grid grid-cols-2 gap-3 text-sm mb-4">
+        <p className="mb-3 text-base">Each element has unique abilities and strengths against enemies:</p>
+        <div className="grid grid-cols-2 gap-3 text-base mb-4">
           <div className="text-left"><span className="font-bold text-red-400">Fire:</span> Strong against Air, weak to Water</div>
           <div className="text-left"><span className="font-bold text-blue-400">Water:</span> Strong against Fire, weak to Earth</div>
           <div className="text-left"><span className="font-bold text-green-400">Earth:</span> Strong against Water, weak to Air</div>
           <div className="text-left"><span className="font-bold text-purple-400">Air:</span> Strong against Earth, weak to Fire</div>
         </div>
-        <p className="mt-3 text-sm opacity-70">Press the buttons below or number keys 1-5 to switch elements</p>
+        <p className="mt-3 text-sm text-white">Press the buttons below or number keys 1-5 to switch elements</p>
       </motion.div>
     ) : null
   );
 
   // Start playing prompt with enhanced controls
   const StartPlayingPrompt = () => (
-    tutorialVisible && state.level === 1 && !isPaused ? (
+    isPlaying && !isPaused && state.level === 1 ? (
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -425,39 +428,44 @@ const GameCanvas: React.FC = () => {
         transition={{ duration: 0.5, delay: 0.3 }}
         className="absolute bottom-24 right-10 text-white text-center z-40"
       >
-        <div className="glass-panel border border-white/10 p-6 rounded-lg shadow-xl flex flex-col items-center">
-          <p className="text-2xl font-bold mb-4 text-gradient">Start Your Journey</p>
+        <div className="glass-panel border border-white/30 p-6 rounded-lg shadow-xl flex flex-col items-center backdrop-blur-md">
+          <p className="text-2xl font-bold mb-4 text-gradient">Game Controls</p>
           
           <div className="grid grid-cols-2 gap-x-5 gap-y-2 mb-5 text-left">
             <div className="flex items-center gap-2">
-              <kbd className="bg-white/20 px-2 py-1 rounded text-xs">W</kbd>
-              <kbd className="bg-white/20 px-2 py-1 rounded text-xs">↑</kbd>
-              <kbd className="bg-white/20 px-2 py-1 rounded text-xs">Space</kbd>
+              <kbd className="bg-white/30 px-2 py-1 rounded text-xs">W</kbd>
+              <kbd className="bg-white/30 px-2 py-1 rounded text-xs">↑</kbd>
+              <kbd className="bg-white/30 px-2 py-1 rounded text-xs">Space</kbd>
             </div>
             <div>Jump</div>
             
             <div className="flex items-center gap-2">
-              <kbd className="bg-white/20 px-2 py-1 rounded text-xs">A</kbd>
-              <kbd className="bg-white/20 px-2 py-1 rounded text-xs">←</kbd>
+              <kbd className="bg-white/30 px-2 py-1 rounded text-xs">A</kbd>
+              <kbd className="bg-white/30 px-2 py-1 rounded text-xs">←</kbd>
             </div>
             <div>Move Left</div>
             
             <div className="flex items-center gap-2">
-              <kbd className="bg-white/20 px-2 py-1 rounded text-xs">D</kbd>
-              <kbd className="bg-white/20 px-2 py-1 rounded text-xs">→</kbd>
+              <kbd className="bg-white/30 px-2 py-1 rounded text-xs">D</kbd>
+              <kbd className="bg-white/30 px-2 py-1 rounded text-xs">→</kbd>
             </div>
             <div>Move Right</div>
             
             <div className="flex items-center gap-2">
-              <kbd className="bg-white/20 px-2 py-1 rounded text-xs">F</kbd>
-              <kbd className="bg-white/20 px-2 py-1 rounded text-xs">Click</kbd>
+              <kbd className="bg-white/30 px-2 py-1 rounded text-xs">F</kbd>
+              <kbd className="bg-white/30 px-2 py-1 rounded text-xs">Click</kbd>
             </div>
             <div>Shoot</div>
             
             <div className="flex items-center gap-2">
-              <kbd className="bg-white/20 px-2 py-1 rounded text-xs">1-5</kbd>
+              <kbd className="bg-white/30 px-2 py-1 rounded text-xs">1-5</kbd>
             </div>
             <div>Change Element</div>
+            
+            <div className="flex items-center gap-2">
+              <kbd className="bg-white/30 px-2 py-1 rounded text-xs">ESC</kbd>
+            </div>
+            <div>Pause</div>
           </div>
           
           <div className="mt-4 flex items-center justify-center gap-3">
@@ -469,6 +477,13 @@ const GameCanvas: React.FC = () => {
             </motion.div>
             <p className="font-bold text-gradient">Move right to begin</p>
           </div>
+          
+          <button 
+            className="mt-4 px-4 py-2 bg-white/20 rounded-md hover:bg-white/30 transition-colors"
+            onClick={() => setTutorialVisible(false)}
+          >
+            Close
+          </button>
         </div>
       </motion.div>
     ) : null
@@ -494,45 +509,43 @@ const GameCanvas: React.FC = () => {
 
   // Additional component to render spirit form circles at the top with correct positioning
   const SpiritCircles = () => {
-    const spiritRadius = 40; // Radius of each spirit circle
-    const spacing = 100; // Space between each circle
+    if (!isTutorialLevel) return null;
     
     return (
-      <div className="absolute top-[280px] left-1/2 -translate-x-1/2 flex space-x-16">
-        {state.availableElements.map((element, index) => (
-          <div 
-            key={`spirit-circle-${element}`}
-            className="relative flex flex-col items-center"
-            style={{
-              transform: `translateX(${(index - 2) * spacing}px)` // Center the circles
-            }}
-          >
+      <div className="absolute top-40 left-0 right-0 flex justify-center items-center w-full">
+        <div className="flex gap-16">
+          {state.availableElements.map((element) => (
             <div 
-              className={`w-[${spiritRadius * 2}px] h-[${spiritRadius * 2}px] rounded-full flex items-center justify-center mb-2`}
-              style={{
-                background: element === 'fire' ? 'radial-gradient(circle, #ff5c5c, #ff0000)'
-                  : element === 'water' ? 'radial-gradient(circle, #5ccdff, #0088ff)'
-                  : element === 'earth' ? 'radial-gradient(circle, #5cff5c, #00a000)'
-                  : element === 'air' ? 'radial-gradient(circle, #d9c7ff, #9975ff)'
-                  : 'radial-gradient(circle, #ffffff, #cccccc)',
-                boxShadow: `0 0 20px ${
-                  element === 'fire' ? '#ff5c5c80' 
-                  : element === 'water' ? '#5ccdff80'
-                  : element === 'earth' ? '#5cff5c80'
-                  : element === 'air' ? '#d9c7ff80'
-                  : '#ffffff80'
-                }`,
-              }}
+              key={`spirit-circle-${element}`}
+              className="flex flex-col items-center"
             >
-              {element === 'fire' && <Flame size={24} color="#ffffff" />}
-              {element === 'water' && <Droplet size={24} color="#ffffff" />}
-              {element === 'earth' && <Leaf size={24} color="#ffffff" />}
-              {element === 'air' && <Wind size={24} color="#ffffff" />}
-              {element === 'spirit' && <div className="w-3 h-3 bg-white rounded-full" />}
+              <div 
+                className="w-16 h-16 rounded-full flex items-center justify-center mb-2"
+                style={{
+                  background: element === 'fire' ? 'radial-gradient(circle, #ff5c5c, #ff0000)'
+                    : element === 'water' ? 'radial-gradient(circle, #5ccdff, #0088ff)'
+                    : element === 'earth' ? 'radial-gradient(circle, #5cff5c, #00a000)'
+                    : element === 'air' ? 'radial-gradient(circle, #d9c7ff, #9975ff)'
+                    : 'radial-gradient(circle, #ffffff, #cccccc)',
+                  boxShadow: `0 0 20px ${
+                    element === 'fire' ? '#ff5c5c' 
+                    : element === 'water' ? '#5ccdff'
+                    : element === 'earth' ? '#5cff5c'
+                    : element === 'air' ? '#d9c7ff'
+                    : '#ffffff'
+                  }`,
+                }}
+              >
+                {element === 'fire' && <Flame size={24} color="#ffffff" />}
+                {element === 'water' && <Droplet size={24} color="#ffffff" />}
+                {element === 'earth' && <Leaf size={24} color="#ffffff" />}
+                {element === 'air' && <Wind size={24} color="#ffffff" />}
+                {element === 'spirit' && <div className="w-3 h-3 bg-white rounded-full" />}
+              </div>
+              <div className="text-white capitalize text-sm font-medium">{element}</div>
             </div>
-            <div className="text-white capitalize text-sm text-center">{element}</div>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
     );
   };

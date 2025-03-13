@@ -121,27 +121,6 @@ const MainMenu: React.FC = () => {
     }, 100);
   };
 
-  // Controls info component that appears in main menu
-  const ControlsInfo = () => (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: 0.7 }}
-      className="absolute bottom-32 left-1/2 -translate-x-1/2 glass-panel p-4 rounded-lg max-w-md text-white/90 text-sm border border-white/10"
-    >
-      <h3 className="font-bold text-center mb-2">Controls</h3>
-      <div className="grid grid-cols-2 gap-x-6 gap-y-1">
-        <div>W / Space / ↑</div><div>Jump</div>
-        <div>A / ←</div><div>Move Left</div>
-        <div>D / →</div><div>Move Right</div>
-        <div>S / ↓</div><div>Duck</div>
-        <div>F / Left Click</div><div>Shoot</div>
-        <div>1-5</div><div>Change Element</div>
-        <div>ESC</div><div>Pause</div>
-      </div>
-    </motion.div>
-  );
-  
   return (
     <div className="relative w-full h-screen overflow-hidden">
       {/* Animated background */}
@@ -234,16 +213,13 @@ const MainMenu: React.FC = () => {
           </div>
         </div>
         
-        {/* Controls info in main menu */}
-        <ControlsInfo />
-        
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.8 }}
           className="absolute bottom-8 text-sm text-white/60"
         >
-          © 2025 Spirit Shift | Press Play to begin your journey
+          2025 Spirit Shift | Press Play to begin your journey
         </motion.div>
       </div>
       
