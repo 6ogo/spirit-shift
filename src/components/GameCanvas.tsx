@@ -5,7 +5,7 @@ import { useGameLoop } from '@/hooks/useGameLoop';
 import Player from './Player';
 import Platform from './Platform';
 import Spirit from './Spirit';
-import GameHUD from './UI/GameHUD';
+import GameHUD from './ui/GameHUD';
 import { Play, Home, RotateCcw, Flame, Droplet, Leaf, Wind, Ghost, ArrowRight } from 'lucide-react';
 
 // Enemy component
