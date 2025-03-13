@@ -1,3 +1,4 @@
+
 import React, { useEffect, useRef, useState } from 'react';
 import { useGame, Platform } from '@/contexts/GameContext';
 import { motion } from 'framer-motion';
@@ -154,7 +155,7 @@ export const useGameLoop = ({ fps = 60 }: GameLoopProps = {}) => {
     const cappedDelta = Math.min(deltaTime, 0.1);
     
     // Gravity effect - adjusted for deltaTime
-    const gravity = 0.8 * 60 * cappedDelta;
+    const gravity = 0.98 * 60 * cappedDelta;
 
     // Update player position
     let playerX = state.player.x;
@@ -164,7 +165,7 @@ export const useGameLoop = ({ fps = 60 }: GameLoopProps = {}) => {
     let playerWidth = state.player.width;
     let playerHeight = state.player.height;
 
-    // Apply movement based on player's movement flags - FIXED: Always apply velocity correctly
+    // FIXED: Properly apply movement based on player's movement flags
     // This ensures movement always works regardless of state
     if (state.player.isMovingLeft) {
       velocityX = state.player.isDucking ? -3 : -5;
@@ -233,17 +234,18 @@ export const useGameLoop = ({ fps = 60 }: GameLoopProps = {}) => {
       dispatch({ type: 'SET_ON_PLATFORM', payload: true });
     }
 
-    // Always update the player position with the current values
+    // CRUCIAL FIX: Always update the player position with the current values
     dispatch({
       type: 'PLAYER_MOVE_WITH_VELOCITY',
       payload: {
         x: playerX,
         y: playerY,
+        velocityX: velocityX,
         velocityY: velocityY
       }
     });
 
-    // Update projectiles - THIS SHOULD RUN REGARDLESS OF PLAYER STATE
+    // Update projectiles
     dispatch({ type: 'UPDATE_PROJECTILES' });
 
     // Energy regeneration based on element
@@ -267,17 +269,18 @@ export const useGameLoop = ({ fps = 60 }: GameLoopProps = {}) => {
 
     const newEnergy = Math.min(state.player.maxEnergy, state.player.energy + energyRegen);
 
-    // Update player position and velocity
+    // Update player energy and log position for debug
     dispatch({
       type: 'UPDATE_PLAYER',
       payload: {
-        x: playerX,
-        y: playerY,
-        velocityX: velocityX,
-        velocityY: velocityY,
         energy: newEnergy,
       }
     });
+
+    // Debug logging for movement issues
+    if (Math.abs(lastPositionRef.current.x - playerX) > 0.1) {
+      console.log(`Player moved from ${lastPositionRef.current.x} to ${playerX}`);
+    }
 
     lastPositionRef.current = { x: playerX, y: playerY };
   };

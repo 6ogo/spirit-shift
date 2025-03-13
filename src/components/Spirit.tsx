@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { ElementType, useGame } from '@/contexts/GameContext';
@@ -106,82 +107,6 @@ const Spirit: React.FC<SpiritProps> = ({ element, x, y, size = 56, glowing = fal
           filter: 'blur(8px)'
         }}
       />
-      
-      {/* Attract particles */}
-      {[...Array(5)].map((_, i) => (
-        <motion.div
-          key={i}
-          className="absolute w-1.5 h-1.5 rounded-full pointer-events-none"
-          style={{ 
-            backgroundColor: elementColors[element],
-            boxShadow: `0 0 5px ${elementColors[element]}`
-          }}
-          initial={{ 
-            x: (Math.random() - 0.5) * 70, 
-            y: (Math.random() - 0.5) * 70,
-            opacity: 0 
-          }}
-          animate={{ 
-            x: 0, 
-            y: 0, 
-            opacity: [0, 1, 0] 
-          }}
-          transition={{ 
-            duration: 2 + Math.random(),
-            repeat: Infinity, 
-            repeatDelay: Math.random() * 3
-          }}
-        />
-      ))}
-      
-      {/* Element-specific effects */}
-      {element === 'fire' && (
-        [...Array(3)].map((_, i) => (
-          <motion.div
-            key={`fire-${i}`}
-            className="absolute w-2 h-4 rounded-full pointer-events-none"
-            style={{ 
-              backgroundColor: '#FF9D5C',
-              left: '50%',
-              bottom: '60%',
-              transform: 'translateX(-50%)'
-            }}
-            animate={{ 
-              y: [-5, -15, -5],
-              opacity: [0.8, 0, 0.8],
-              width: [6, 2, 6]
-            }}
-            transition={{ 
-              duration: 1.5 + Math.random() * 0.8,
-              delay: i * 0.4,
-              repeat: Infinity,
-              repeatType: "reverse"
-            }}
-          />
-        ))
-      )}
-      
-      {element === 'water' && (
-        <motion.div
-          className="absolute inset-0 rounded-full overflow-hidden pointer-events-none"
-          style={{ opacity: 0.7 }}
-        >
-          <motion.div
-            className="absolute inset-0 pointer-events-none"
-            style={{ 
-              background: `linear-gradient(0deg, ${elementColors.water} 0%, rgba(255,255,255,0.3) 100%)`,
-            }}
-            animate={{ 
-              y: ['0%', '100%', '0%']
-            }}
-            transition={{ 
-              duration: 5,
-              ease: "easeInOut",
-              repeat: Infinity,
-            }}
-          />
-        </motion.div>
-      )}
     </motion.div>
   );
 };
