@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useGame, ElementType } from '@/contexts/GameContext';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -13,9 +12,18 @@ const Player: React.FC<PlayerProps> = ({ width = 40, height = 50 }) => {
   const { player } = state;
   const [isShifting, setIsShifting] = useState(false);
   const [lastElement, setLastElement] = useState<ElementType>(player.currentElement);
+  const [lastPosition, setLastPosition] = useState({ x: player.x, y: player.y });
   
   // Use the facingDirection from game state
   const facingDirection = player.facingDirection;
+  
+  // Log position changes for debugging
+  useEffect(() => {
+    if (Math.abs(lastPosition.x - player.x) > 1 || Math.abs(lastPosition.y - player.y) > 1) {
+      console.log(`Player moved: (${lastPosition.x.toFixed(1)}, ${lastPosition.y.toFixed(1)}) -> (${player.x.toFixed(1)}, ${player.y.toFixed(1)})`);
+      setLastPosition({ x: player.x, y: player.y });
+    }
+  }, [player.x, player.y]);
   
   // Element shift animation
   useEffect(() => {
@@ -131,8 +139,8 @@ const Player: React.FC<PlayerProps> = ({ width = 40, height = 50 }) => {
     <div 
       className="absolute will-change-transform hardware-accelerated"
       style={{ 
-        left: player.x, 
-        top: player.y,
+        left: `${player.x}px`, // CRITICAL FIX: Explicitly use px units
+        top: `${player.y}px`,  // CRITICAL FIX: Explicitly use px units
         transform: `translate3d(-50%, -100%, 0) scaleX(${facingDirection === 'left' ? -1 : 1})`,
         filter: isShifting ? 'blur(3px)' : 'none',
         transition: 'filter 0.3s ease'
@@ -198,7 +206,7 @@ const Player: React.FC<PlayerProps> = ({ width = 40, height = 50 }) => {
             />
           )}
           
-          {/* Moving trail for fire and air elements */}
+          {/* Movement effects for different elements */}
           {(player.currentElement === 'fire' || player.currentElement === 'air') && 
             Math.abs(player.velocityX) > 1 && (
             <motion.div

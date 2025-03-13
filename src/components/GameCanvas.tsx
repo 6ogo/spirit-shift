@@ -142,6 +142,7 @@ const GameCanvas: React.FC = () => {
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const [tutorialVisible, setTutorialVisible] = useState(true);
   const [cameraLocked, setCameraLocked] = useState(true);
+  const keyPressRef = useRef({ lastLog: 0 });
 
   useGameLoop();
 
@@ -230,7 +231,6 @@ const GameCanvas: React.FC = () => {
     console.log("Setting up keyboard controls in GameCanvas");
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Prevent default browser behavior for game keys
       if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' ', 'w', 'a', 's', 'd'].includes(e.key)) {
         e.preventDefault();
       }
@@ -241,6 +241,12 @@ const GameCanvas: React.FC = () => {
       }
       
       if (isPaused) return;
+      
+      const now = Date.now();
+      if (now - keyPressRef.current.lastLog > 1000) {
+        console.log("Key press detected:", e.key.toLowerCase());
+        keyPressRef.current.lastLog = now;
+      }
       
       switch (e.key.toLowerCase()) {
         case 'w':
@@ -310,12 +316,12 @@ const GameCanvas: React.FC = () => {
       }
     };
 
-    window.addEventListener('keydown', handleKeyDown);
-    window.addEventListener('keyup', handleKeyUp);
+    window.addEventListener('keydown', handleKeyDown, { capture: true });
+    window.addEventListener('keyup', handleKeyUp, { capture: true });
 
     return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-      window.removeEventListener('keyup', handleKeyUp);
+      window.removeEventListener('keydown', handleKeyDown, { capture: true });
+      window.removeEventListener('keyup', handleKeyUp, { capture: true });
     };
   }, [isPlaying, isPaused, dispatch]);
 

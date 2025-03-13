@@ -384,8 +384,8 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
         player: {
           ...state.player,
           isMovingLeft: action.payload,
+          facingDirection: action.payload ? 'left' : state.player.isMovingRight ? 'right' : state.player.facingDirection,
           velocityX: action.payload ? -moveSpeed : state.player.isMovingRight ? moveSpeed : 0,
-          facingDirection: action.payload ? 'left' : state.player.facingDirection,
         },
       };
     }
@@ -396,8 +396,8 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
         player: {
           ...state.player,
           isMovingRight: action.payload,
+          facingDirection: action.payload ? 'right' : state.player.isMovingLeft ? 'left' : state.player.facingDirection,
           velocityX: action.payload ? moveSpeedRight : state.player.isMovingLeft ? -moveSpeedRight : 0,
-          facingDirection: action.payload ? 'right' : state.player.facingDirection,
         },
       };
     }
