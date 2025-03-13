@@ -129,7 +129,7 @@ const GameHUD: React.FC = () => {
       </div>
       
       {/* Health and energy bars - Always visible at bottom left */}
-      <div className="fixed bottom-6 left-6 z-50 flex flex-col space-y-3 w-64">
+      <div className="fixed bottom-6 left-6 z-[100] flex flex-col space-y-3 w-64">
         {/* Health bar */}
         <ProgressBar 
           value={player.health} 
@@ -138,7 +138,7 @@ const GameHUD: React.FC = () => {
           color="#FF5555"
           animate={false}
           icon={<Heart size={14} className="text-red-500" />}
-          className="border border-white/20 shadow-lg"
+          className="border border-white/20 shadow-xl backdrop-blur-md bg-black/40"
         />
         
         {/* Energy bar */}
@@ -149,7 +149,7 @@ const GameHUD: React.FC = () => {
           color={elementColors[player.currentElement]}
           animate={true}
           icon={<Battery size={14} className="text-yellow-500" />}
-          className="border border-white/20 shadow-lg"
+          className="border border-white/20 shadow-xl backdrop-blur-md bg-black/40"
         />
       </div>
     </>

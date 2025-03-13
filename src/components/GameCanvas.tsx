@@ -237,9 +237,6 @@ const GameCanvas: React.FC = () => {
 
   // Keyboard event handling
   useEffect(() => {
-    // Only attach keyboard events if the game is playing and not paused
-    if (!isPlaying || isPaused) return;
-
     console.log("Setting up keyboard controls in GameCanvas");
 
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -247,6 +244,9 @@ const GameCanvas: React.FC = () => {
       if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' ', 'w', 'a', 's', 'd'].includes(e.key)) {
         e.preventDefault();
       }
+      
+      // Don't handle controls when game is paused
+      if (isPaused) return;
       
       switch (e.key.toLowerCase()) {
         case 'w':
@@ -293,6 +293,9 @@ const GameCanvas: React.FC = () => {
     };
 
     const handleKeyUp = (e: KeyboardEvent) => {
+      // Don't handle controls when game is paused
+      if (isPaused) return;
+      
       switch (e.key.toLowerCase()) {
         case 'a':
         case 'arrowleft':
@@ -316,7 +319,7 @@ const GameCanvas: React.FC = () => {
       document.removeEventListener('keydown', handleKeyDown);
       document.removeEventListener('keyup', handleKeyUp);
     };
-  }, [isPlaying, isPaused, dispatch]);
+  }, [isPaused, dispatch]);
 
   // Pause screen component
   const PauseScreen = () => (
@@ -481,9 +484,54 @@ const GameCanvas: React.FC = () => {
           <Spirit
             key={`spirit-intro-${element}`}
             element={element}
-            x={-100 + (index * 100)} // Relative positioning
+            x={0} // Center position
             y={480} // Near the bottom
           />
+        ))}
+      </div>
+    );
+  };
+
+  // Additional component to render spirit form circles at the top with correct positioning
+  const SpiritCircles = () => {
+    const spiritRadius = 40; // Radius of each spirit circle
+    const spacing = 100; // Space between each circle
+    
+    return (
+      <div className="absolute top-[280px] left-1/2 -translate-x-1/2 flex space-x-16">
+        {state.availableElements.map((element, index) => (
+          <div 
+            key={`spirit-circle-${element}`}
+            className="relative flex flex-col items-center"
+            style={{
+              transform: `translateX(${(index - 2) * spacing}px)` // Center the circles
+            }}
+          >
+            <div 
+              className={`w-[${spiritRadius * 2}px] h-[${spiritRadius * 2}px] rounded-full flex items-center justify-center mb-2`}
+              style={{
+                background: element === 'fire' ? 'radial-gradient(circle, #ff5c5c, #ff0000)'
+                  : element === 'water' ? 'radial-gradient(circle, #5ccdff, #0088ff)'
+                  : element === 'earth' ? 'radial-gradient(circle, #5cff5c, #00a000)'
+                  : element === 'air' ? 'radial-gradient(circle, #d9c7ff, #9975ff)'
+                  : 'radial-gradient(circle, #ffffff, #cccccc)',
+                boxShadow: `0 0 20px ${
+                  element === 'fire' ? '#ff5c5c80' 
+                  : element === 'water' ? '#5ccdff80'
+                  : element === 'earth' ? '#5cff5c80'
+                  : element === 'air' ? '#d9c7ff80'
+                  : '#ffffff80'
+                }`,
+              }}
+            >
+              {element === 'fire' && <Flame size={24} color="#ffffff" />}
+              {element === 'water' && <Droplet size={24} color="#ffffff" />}
+              {element === 'earth' && <Leaf size={24} color="#ffffff" />}
+              {element === 'air' && <Wind size={24} color="#ffffff" />}
+              {element === 'spirit' && <div className="w-3 h-3 bg-white rounded-full" />}
+            </div>
+            <div className="text-white capitalize text-sm text-center">{element}</div>
+          </div>
         ))}
       </div>
     );
@@ -588,6 +636,7 @@ const GameCanvas: React.FC = () => {
       <PauseScreen />
       <GameOverScreen />
       <LevelTransition />
+      <SpiritCircles />
       
       {/* Mobile controls overlay (for touch devices) */}
       <div className="md:hidden absolute bottom-20 left-4 right-4 z-30 flex justify-between">

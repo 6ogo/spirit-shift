@@ -199,246 +199,79 @@ export const useGameLoop = ({ fps = 60 }: GameLoopProps = {}) => {
         if (checkStandingOnPlatform(playerX, playerY, playerWidth, playerHeight, platform, velocityY)) {
           // Only land if it's a ground platform or we're falling onto it
           if (!platform.canPassThrough || velocityY > 0) {
+            playerY = platform.y;
+            velocityY = 0;
             landed = true;
             platformLandedOn = platform;
+            
+            // Show landed on platform effect
+            // dispatch({type: 'SPAWN_EFFECT', payload: {type: 'land', x: playerX, y: playerY}});
             break;
           }
         }
-
-        // Check if hitting bottom of platform when jumping
-        if (checkHittingPlatformBottom(playerX, playerY, playerWidth, playerHeight, platform, velocityY)) {
-          // Bounce off the bottom slightly
-          velocityY = Math.abs(velocityY) * 0.3;
-          
-          // Update velocity immediately
-          dispatch({
-            type: 'UPDATE_VELOCITY_Y',
-            payload: velocityY
-          });
+        
+        // Player hitting the bottom of a pass-through platform
+        else if (checkHittingPlatformBottom(playerX, playerY, playerWidth, playerHeight, platform, velocityY)) {
+          velocityY = Math.abs(velocityY * 0.5); // Bounce slightly
         }
       }
 
-      if (landed && platformLandedOn) {
-        // Player has landed on a platform
-        dispatch({
-          type: 'PLAYER_LAND',
-          payload: { platformY: platformLandedOn.y }
+      if (landed) {
+        dispatch({ 
+          type: 'PLAYER_LAND', 
+          payload: { platformY: platformLandedOn ? platformLandedOn.y : playerY + playerHeight } 
         });
       } else {
-        // Update player position with velocity - Key for smooth movement
-        dispatch({
-          type: 'PLAYER_MOVE_WITH_VELOCITY',
-          payload: {
-            x: playerX,
-            y: playerY,
-            velocityY: velocityY
-          }
-        });
-
-        // Update platform status
-        let onAnyPlatform = false;
-        for (const platform of state.platforms) {
-          if (checkStandingOnPlatform(playerX, playerY, playerWidth, playerHeight, platform, velocityY)) {
-            onAnyPlatform = true;
-            break;
-          }
-        }
-
-        if (state.player.onPlatform !== onAnyPlatform) {
-          dispatch({
-            type: 'SET_ON_PLATFORM',
-            payload: onAnyPlatform
-          });
-        }
-      }
-    } else {
-      // Explicitly update position for horizontal movement when on platform
-      dispatch({
-        type: 'PLAYER_MOVE',
-        payload: {
-          x: playerX,
-          y: playerY
-        }
-      });
-
-      // Check if still on platform while moving horizontally
-      let onAnyPlatform = false;
-      for (const platform of state.platforms) {
-        if (checkStandingOnPlatform(playerX, playerY, playerWidth, playerHeight, platform, 0)) {
-          onAnyPlatform = true;
-          break;
-        }
-      }
-
-      // If moved off platform, start falling
-      if (!onAnyPlatform && state.player.onPlatform) {
-        dispatch({
-          type: 'SET_ON_PLATFORM',
-          payload: false
-        });
+        dispatch({ type: 'SET_ON_PLATFORM', payload: false });
       }
     }
 
-    // Detect if position actually changed (debug for stuck movement)
-    if (lastPositionRef.current.x !== playerX || lastPositionRef.current.y !== playerY) {
-      // Position changed, update last position
-      lastPositionRef.current = { x: playerX, y: playerY };
+    // Clamp player position to ensure they don't fall out of the world
+    playerY = Math.min(800, playerY);
+    
+    if (playerY >= 800) {
+      velocityY = 0;
+      playerY = 800;
+      dispatch({ type: 'SET_ON_PLATFORM', payload: true });
     }
 
-    // Reset shooting state after a short delay (animation effect)
-    if (state.player.isShooting && (Date.now() - state.player.lastShootTime > 200)) {
-      dispatch({
-        type: 'UPDATE_PLAYER',
-        payload: { isShooting: false }
-      });
-    }
+    // Update projectiles - THIS SHOULD RUN REGARDLESS OF PLAYER STATE
+    dispatch({ type: 'UPDATE_PROJECTILES' });
 
-    // Apply element-specific effects
+    // Energy regeneration based on element
+    let energyRegen = 0.05;
     switch (state.player.currentElement) {
-      case 'air':
-        // Air spirit falls slower
-        if (state.player.isJumping && velocityY > 0) {
-          velocityY *= 0.9;
-          dispatch({
-            type: 'UPDATE_VELOCITY_Y',
-            payload: velocityY
-          });
-        }
-        break;
       case 'fire':
-        // Fire spirit can regenerate energy faster
-        if (state.player.energy < state.player.maxEnergy) {
-          dispatch({
-            type: 'UPDATE_ENERGY',
-            payload: state.player.energy + 0.3
-          });
-        }
+        energyRegen = 0.1;
         break;
       case 'water':
-        // Water spirits can "float" briefly at jump apex
-        if (state.player.isJumping && Math.abs(velocityY) < 2) {
-          velocityY *= 0.7;
-          dispatch({
-            type: 'UPDATE_VELOCITY_Y',
-            payload: velocityY
-          });
-        }
+        energyRegen = 0.075;
         break;
       case 'earth':
-        // Earth spirits are more resistant to damage
-        // Also they jump higher but fall faster
-        if (state.player.isJumping && velocityY > 0) {
-          // Fall faster
-          velocityY *= 1.05;
-          dispatch({
-            type: 'UPDATE_VELOCITY_Y',
-            payload: velocityY
-          });
-        }
+        energyRegen = 0.05;
+        break;
+      case 'air':
+        energyRegen = 0.08;
         break;
       default:
-        // Spirit form is balanced
-        if (state.player.energy < state.player.maxEnergy) {
-          dispatch({
-            type: 'UPDATE_ENERGY',
-            payload: state.player.energy + 0.1
-          });
-        }
-        break;
+        energyRegen = 0.07;
     }
 
-    // Auto-health regeneration (very slow)
-    if (state.player.health < state.player.maxHealth) {
-      dispatch({
-        type: 'UPDATE_HEALTH',
-        payload: state.player.health + 0.01
-      });
-    }
-    
-    // Update projectiles if there are any
-    if (state.projectiles.length > 0) {
-      dispatch({ type: 'UPDATE_PROJECTILES' });
-    }
-    
-    // Update enemy movements
-    if (state.enemies.length > 0) {
-      const updatedEnemies = state.enemies.map(enemy => {
-        // Calculate distance to player
-        const distanceToPlayer = Math.abs(enemy.x - state.player.x);
-  
-        // Only move if within a certain range (enemy sight)
-        if (distanceToPlayer < 400) {
-          // Determine direction to player
-          const directionToPlayer: 'left' | 'right' = enemy.x < state.player.x ? 'right' : 'left';
-  
-          // Calculate new x position
-          let moveSpeed = enemy.speed * cappedDelta * 60;
-          const newX = directionToPlayer === 'right' ?
-            enemy.x + moveSpeed :
-            enemy.x - moveSpeed;
-  
-          // Check if movement would cause collision
-          let canMove = true;
-          let wouldFall = true;
-  
-          // Check for side collisions with platforms and check if there's ground ahead
-          for (const platform of state.platforms) {
-            // Check if enemy is at the same height as platform
-            if (
-              enemy.y >= platform.y - enemy.height &&
-              enemy.y <= platform.y + platform.height
-            ) {
-              // Check if would hit platform from side
-              if (directionToPlayer === 'right' &&
-                newX + enemy.width / 2 >= platform.x &&
-                enemy.x + enemy.width / 2 < platform.x) {
-                canMove = false;
-              } else if (directionToPlayer === 'left' &&
-                newX - enemy.width / 2 <= platform.x + platform.width &&
-                enemy.x - enemy.width / 2 > platform.x + platform.width) {
-                canMove = false;
-              }
-            }
-  
-            // Check if there's ground ahead
-            if (
-              (directionToPlayer === 'right' &&
-                newX + enemy.width / 2 >= platform.x &&
-                newX - enemy.width / 2 <= platform.x + platform.width) ||
-              (directionToPlayer === 'left' &&
-                newX + enemy.width / 2 >= platform.x &&
-                newX - enemy.width / 2 <= platform.x + platform.width)
-            ) {
-              // Check if platform is at the right height
-              if (Math.abs(enemy.y - platform.y) < 5) {
-                wouldFall = false;
-              }
-            }
-          }
-  
-          if (canMove && !wouldFall) {
-            // Return updated enemy with new position
-            return {
-              ...enemy,
-              x: newX,
-              direction: directionToPlayer
-            };
-          }
-        }
-  
-        // Return unchanged enemy if it can't move
-        return enemy;
-      });
-  
-      // Only dispatch if there are actual changes
-      const hasChanges = updatedEnemies.some((enemy, index) => 
-        enemy.x !== state.enemies[index].x || enemy.direction !== state.enemies[index].direction
-      );
-  
-      if (hasChanges) {
-        dispatch({ type: 'UPDATE_ENEMIES', payload: updatedEnemies });
+    const newEnergy = Math.min(state.player.maxEnergy, state.player.energy + energyRegen);
+
+    // Update player position and velocity
+    dispatch({
+      type: 'UPDATE_PLAYER',
+      payload: {
+        x: playerX,
+        y: playerY,
+        velocityX: velocityX,
+        velocityY: velocityY,
+        energy: newEnergy,
       }
-    }
+    });
+
+    lastPositionRef.current = { x: playerX, y: playerY };
   };
 
   // Set up and clean up game loop with requestAnimationFrame
