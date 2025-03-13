@@ -1,3 +1,4 @@
+
 import React, { useEffect, useRef, useState } from 'react';
 import { useGame, Platform } from '@/contexts/GameContext';
 import { motion } from 'framer-motion';
@@ -162,7 +163,7 @@ export const useGameLoop = ({ fps = 60 }: GameLoopProps = {}) => {
     let playerWidth = state.player.width;
     let playerHeight = state.player.height;
 
-    // CRITICAL FIX: Direct player movement based on isMoving flags
+    // FIXED: Apply movement with proper velocity calculation
     let baseSpeed = state.player.isDucking ? 3 : 5;
     
     // Apply element-specific speed modifiers
@@ -178,8 +179,7 @@ export const useGameLoop = ({ fps = 60 }: GameLoopProps = {}) => {
         break;
     }
     
-    // Critical fix: directly calculate velocityX based on movement flags
-    // This ensures movement happens regardless of state update timing
+    // CRITICAL FIX: directly calculate velocityX based on movement flags
     if (state.player.isMovingLeft && !state.player.isMovingRight) {
       velocityX = -baseSpeed;
     } else if (state.player.isMovingRight && !state.player.isMovingLeft) {
@@ -261,6 +261,7 @@ export const useGameLoop = ({ fps = 60 }: GameLoopProps = {}) => {
       payload: {
         x: playerX,
         y: playerY,
+        velocityX: velocityX,
         velocityY: velocityY
       }
     });
@@ -289,12 +290,11 @@ export const useGameLoop = ({ fps = 60 }: GameLoopProps = {}) => {
 
     const newEnergy = Math.min(state.player.maxEnergy, state.player.energy + energyRegen);
 
-    // Update player energy
+    // Update player energy (but not position/velocity - those are already updated)
     dispatch({
       type: 'UPDATE_PLAYER',
       payload: {
-        energy: newEnergy,
-        velocityX: velocityX // CRITICAL FIX: Always update velocityX in state
+        energy: newEnergy
       }
     });
 

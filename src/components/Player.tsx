@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { useGame, ElementType } from '@/contexts/GameContext';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -139,11 +140,12 @@ const Player: React.FC<PlayerProps> = ({ width = 40, height = 50 }) => {
     <div 
       className="absolute will-change-transform hardware-accelerated"
       style={{ 
-        left: `${player.x}px`, // CRITICAL FIX: Explicitly use px units
-        top: `${player.y}px`,  // CRITICAL FIX: Explicitly use px units
+        left: player.x + "px", 
+        top: player.y + "px",
         transform: `translate3d(-50%, -100%, 0) scaleX(${facingDirection === 'left' ? -1 : 1})`,
         filter: isShifting ? 'blur(3px)' : 'none',
-        transition: 'filter 0.3s ease'
+        transition: 'filter 0.3s ease',
+        zIndex: 20
       }}
     >
       <AnimatePresence>

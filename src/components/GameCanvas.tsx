@@ -143,6 +143,7 @@ const GameCanvas: React.FC = () => {
   const [tutorialVisible, setTutorialVisible] = useState(true);
   const [cameraLocked, setCameraLocked] = useState(true);
   const keyPressRef = useRef({ lastLog: 0 });
+  const controlsActive = useRef(false);
 
   useGameLoop();
 
@@ -229,6 +230,7 @@ const GameCanvas: React.FC = () => {
 
   useEffect(() => {
     console.log("Setting up keyboard controls in GameCanvas");
+    controlsActive.current = true;
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' ', 'w', 'a', 's', 'd'].includes(e.key)) {
@@ -256,13 +258,13 @@ const GameCanvas: React.FC = () => {
           break;
         case 'a':
         case 'arrowleft':
+          console.log("Left movement key pressed - setting isMovingLeft to true");
           dispatch({ type: 'PLAYER_MOVE_LEFT', payload: true });
-          console.log("Left movement key pressed");
           break;
         case 'd':
         case 'arrowright':
+          console.log("Right movement key pressed - setting isMovingRight to true");
           dispatch({ type: 'PLAYER_MOVE_RIGHT', payload: true });
-          console.log("Right movement key pressed");
           break;
         case 's':
         case 'arrowdown':
@@ -300,13 +302,13 @@ const GameCanvas: React.FC = () => {
       switch (e.key.toLowerCase()) {
         case 'a':
         case 'arrowleft':
+          console.log("Left movement key released - setting isMovingLeft to false");
           dispatch({ type: 'PLAYER_MOVE_LEFT', payload: false });
-          console.log("Left movement key released");
           break;
         case 'd':
         case 'arrowright':
+          console.log("Right movement key released - setting isMovingRight to false");
           dispatch({ type: 'PLAYER_MOVE_RIGHT', payload: false });
-          console.log("Right movement key released");
           break;
         case 's':
         case 'arrowdown':
@@ -316,14 +318,26 @@ const GameCanvas: React.FC = () => {
       }
     };
 
+    if (gameContainerRef.current) {
+      gameContainerRef.current.focus();
+    }
+
     window.addEventListener('keydown', handleKeyDown, { capture: true });
     window.addEventListener('keyup', handleKeyUp, { capture: true });
 
     return () => {
+      controlsActive.current = false;
       window.removeEventListener('keydown', handleKeyDown, { capture: true });
       window.removeEventListener('keyup', handleKeyUp, { capture: true });
     };
   }, [isPlaying, isPaused, dispatch]);
+
+  useEffect(() => {
+    if (isPlaying && !isPaused && gameContainerRef.current) {
+      gameContainerRef.current.focus();
+      console.log("Game container focused");
+    }
+  }, [isPlaying, isPaused]);
 
   const PauseScreen = () => (
     isPaused ? (
@@ -474,7 +488,7 @@ const GameCanvas: React.FC = () => {
   return (
     <div
       ref={gameContainerRef}
-      className="game-container relative overflow-hidden bg-gradient-to-b from-gray-900 via-gray-800 to-black"
+      className="game-container relative overflow-hidden bg-gradient-to-b from-gray-900 via-gray-800 to-black focus:outline-none"
       style={{
         width: '100%',
         height: '100%'
@@ -588,8 +602,6 @@ const GameCanvas: React.FC = () => {
           </button>
         </div>
       </div>
-    </div>
-  );
-};
+      
+      {
 
-export default GameCanvas;
