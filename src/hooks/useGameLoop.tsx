@@ -1,4 +1,3 @@
-
 import React, { useEffect, useRef, useState } from 'react';
 import { useGame, Platform } from '@/contexts/GameContext';
 import { motion } from 'framer-motion';
@@ -235,12 +234,12 @@ export const useGameLoop = ({ fps = 60 }: GameLoopProps = {}) => {
     }
 
     // CRUCIAL FIX: Always update the player position with the current values
+    // Updated to match the expected payload type without velocityX
     dispatch({
       type: 'PLAYER_MOVE_WITH_VELOCITY',
       payload: {
         x: playerX,
         y: playerY,
-        velocityX: velocityX,
         velocityY: velocityY
       }
     });
