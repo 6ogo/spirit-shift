@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGame } from '@/contexts/GameContext';
@@ -231,6 +232,7 @@ const GameCanvas: React.FC = () => {
     console.log("Setting up keyboard controls in GameCanvas");
 
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Prevent default browser behavior for game keys
       if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' ', 'w', 'a', 's', 'd'].includes(e.key)) {
         e.preventDefault();
       }
@@ -246,21 +248,26 @@ const GameCanvas: React.FC = () => {
         case 'w':
         case 'arrowup':
           dispatch({ type: 'PLAYER_JUMP' });
+          console.log("Jump key pressed");
           break;
         case 'a':
         case 'arrowleft':
           dispatch({ type: 'PLAYER_MOVE_LEFT', payload: true });
+          console.log("Left movement key pressed");
           break;
         case 'd':
         case 'arrowright':
           dispatch({ type: 'PLAYER_MOVE_RIGHT', payload: true });
+          console.log("Right movement key pressed");
           break;
         case 's':
         case 'arrowdown':
           dispatch({ type: 'PLAYER_DUCK', payload: true });
+          console.log("Duck key pressed");
           break;
         case ' ':
           dispatch({ type: 'PLAYER_JUMP' });
+          console.log("Space bar pressed for jump");
           break;
         case '1':
           dispatch({ type: 'CHANGE_ELEMENT', payload: 'spirit' });
@@ -290,14 +297,17 @@ const GameCanvas: React.FC = () => {
         case 'a':
         case 'arrowleft':
           dispatch({ type: 'PLAYER_MOVE_LEFT', payload: false });
+          console.log("Left movement key released");
           break;
         case 'd':
         case 'arrowright':
           dispatch({ type: 'PLAYER_MOVE_RIGHT', payload: false });
+          console.log("Right movement key released");
           break;
         case 's':
         case 'arrowdown':
           dispatch({ type: 'PLAYER_DUCK', payload: false });
+          console.log("Duck key released");
           break;
       }
     };
@@ -380,27 +390,7 @@ const GameCanvas: React.FC = () => {
     ) : null
   );
 
-  const ElementTutorial = () => (
-    tutorialVisible && state.level === 1 && !isPaused ? (
-      <motion.div 
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: -20 }}
-        transition={{ duration: 0.5 }}
-        className="absolute top-20 left-1/2 -translate-x-1/2 text-white text-center z-10 p-5 bg-black/80 rounded-md backdrop-blur-md max-w-lg shadow-xl border border-white/20"
-      >
-        <h3 className="font-bold text-xl mb-3">Element Powers</h3>
-        <p className="mb-3 text-base">Each element has unique abilities and strengths against enemies:</p>
-        <div className="grid grid-cols-2 gap-3 text-base mb-4">
-          <div className="text-left"><span className="font-bold text-red-400">Fire:</span> Strong against Air, weak to Water</div>
-          <div className="text-left"><span className="font-bold text-blue-400">Water:</span> Strong against Fire, weak to Earth</div>
-          <div className="text-left"><span className="font-bold text-green-400">Earth:</span> Strong against Water, weak to Air</div>
-          <div className="text-left"><span className="font-bold text-purple-400">Air:</span> Strong against Earth, weak to Fire</div>
-        </div>
-        <p className="mt-3 text-sm text-white">Press the buttons below or number keys 1-5 to switch elements</p>
-      </motion.div>
-    ) : null
-  );
+  // Removed ElementTutorial component as requested
 
   const StartPlayingPrompt = () => (
     isPlaying && !isPaused && state.level === 1 && tutorialVisible ? (
@@ -472,51 +462,7 @@ const GameCanvas: React.FC = () => {
     ) : null
   );
 
-  const renderTutorialSpirits = () => {
-    return null;
-  };
-
-  const SpiritCircles = () => {
-    if (!isTutorialLevel) return null;
-    
-    return (
-      <div className="absolute top-40 left-0 right-0 flex justify-center items-center w-full">
-        <div className="flex gap-16">
-          {state.availableElements.map((element) => (
-            <div 
-              key={`spirit-circle-${element}`}
-              className="flex flex-col items-center"
-            >
-              <div 
-                className="w-16 h-16 rounded-full flex items-center justify-center mb-2"
-                style={{
-                  background: element === 'fire' ? 'radial-gradient(circle, #ff5c5c, #ff0000)'
-                    : element === 'water' ? 'radial-gradient(circle, #5ccdff, #0088ff)'
-                    : element === 'earth' ? 'radial-gradient(circle, #5cff5c, #00a000)'
-                    : element === 'air' ? 'radial-gradient(circle, #d9c7ff, #9975ff)'
-                    : 'radial-gradient(circle, #ffffff, #cccccc)',
-                  boxShadow: `0 0 20px ${
-                    element === 'fire' ? '#ff5c5c' 
-                    : element === 'water' ? '#5ccdff'
-                    : element === 'earth' ? '#5cff5c'
-                    : element === 'air' ? '#d9c7ff'
-                    : '#ffffff'
-                  }`,
-                }}
-              >
-                {element === 'fire' && <Flame size={24} color="#ffffff" />}
-                {element === 'water' && <Droplet size={24} color="#ffffff" />}
-                {element === 'earth' && <Leaf size={24} color="#ffffff" />}
-                {element === 'air' && <Wind size={24} color="#ffffff" />}
-                {element === 'spirit' && <div className="w-3 h-3 bg-white rounded-full" />}
-              </div>
-              <div className="text-white capitalize text-sm font-medium">{element}</div>
-            </div>
-          ))}
-        </div>
-      </div>
-    );
-  };
+  // Removed SpiritCircles component as requested
 
   const cameraPosition = cameraLocked
     ? "translate3d(0px, 0px, 0px)"
@@ -595,7 +541,6 @@ const GameCanvas: React.FC = () => {
       <AnimatePresence>
         {tutorialVisible && (
           <>
-            <ElementTutorial />
             <StartPlayingPrompt />
           </>
         )}
@@ -604,7 +549,6 @@ const GameCanvas: React.FC = () => {
       <PauseScreen />
       <GameOverScreen />
       <LevelTransition />
-      <SpiritCircles />
       
       <div className="md:hidden absolute bottom-20 left-4 right-4 z-30 flex justify-between">
         <div className="flex gap-2">
@@ -651,4 +595,3 @@ const GameCanvas: React.FC = () => {
 };
 
 export default GameCanvas;
-

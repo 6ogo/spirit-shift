@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGame, ElementType } from '@/contexts/GameContext';
@@ -96,36 +97,6 @@ const GameHUD: React.FC = () => {
             <div className="text-xl font-bold">{state.isTutorialLevel ? "Home" : state.level}</div>
           </motion.div>
         </div>
-        
-        {/* Element power description */}
-        <AnimatePresence mode="wait">
-          {state.isTutorialLevel && (
-            <motion.div
-              key={player.currentElement}
-              initial={{ opacity: 25, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.3 }}
-              className="text-center text-sm max-w-sm mx-auto mt-4 bg-black/80 p-4 rounded-lg border border-white/20 shadow-xl backdrop-blur-md font-medium"
-            >
-              {player.currentElement === 'fire' && (
-                <span>Fire spirits move quickly and regenerate energy faster.</span>
-              )}
-              {player.currentElement === 'water' && (
-                <span>Water spirits can momentarily float when jumping.</span>
-              )}
-              {player.currentElement === 'earth' && (
-                <span>Earth spirits jump higher but fall faster. More resistant to damage.</span>
-              )}
-              {player.currentElement === 'air' && (
-                <span>Air spirits fall more slowly and can float gracefully.</span>
-              )}
-              {player.currentElement === 'spirit' && (
-                <span>Spirit form is balanced in all attributes.</span>
-              )}
-            </motion.div>
-          )}
-        </AnimatePresence>
       </div>
       
       {/* Health and energy bars - Always visible at bottom left */}

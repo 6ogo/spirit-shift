@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState, useRef } from 'react';
 import { GameProvider, useGame } from '@/contexts/GameContext';
 import GameCanvas from '@/components/GameCanvas';
@@ -6,7 +7,7 @@ import { motion } from 'framer-motion';
 
 // Debug component - toggle with 'D' key
 const DebugInfo = ({ state }) => (
-  <div className="fixed top-0 left-0 bg-black/70 text-white p-2 z-50 text-xs">
+  <div className="fixed top-0 left-0 bg-black/90 text-white p-2 z-50 text-xs">
     <div>isPlaying: {String(state.isPlaying)}</div>
     <div>isPaused: {String(state.isPaused)}</div>
     <div>gameOver: {String(state.gameOver)}</div>

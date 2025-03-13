@@ -1,3 +1,4 @@
+
 import React, { useEffect, useRef, useState } from 'react';
 import { useGame, Platform } from '@/contexts/GameContext';
 import { motion } from 'framer-motion';
@@ -164,19 +165,29 @@ export const useGameLoop = ({ fps = 60 }: GameLoopProps = {}) => {
     let playerWidth = state.player.width;
     let playerHeight = state.player.height;
 
-    // FIXED: Properly apply movement based on player's movement flags
-    // This ensures movement always works regardless of state
+    // REVAMPED MOVEMENT LOGIC: Use direct flags from state instead of relying on velocityX
+    // This ensures the player always moves when movement keys are pressed
+    const baseSpeed = state.player.isDucking ? 3 : 5;
+    
     if (state.player.isMovingLeft) {
-      velocityX = state.player.isDucking ? -3 : -5;
+      // Force set the velocity for left movement
+      velocityX = -baseSpeed;
     } else if (state.player.isMovingRight) {
-      velocityX = state.player.isDucking ? 3 : 5;
+      // Force set the velocity for right movement
+      velocityX = baseSpeed;
     } else {
-      velocityX = 0; // Stop when not moving
+      // Only reset to zero when not moving
+      velocityX = 0;
     }
 
-    // Apply horizontal movement - properly scaled by delta time
+    // Apply horizontal movement with proper scaling
     const moveStep = velocityX * 60 * cappedDelta;
     playerX += moveStep;
+    
+    // Log movement to debug
+    if (Math.abs(moveStep) > 0) {
+      console.log(`Moving player: direction=${velocityX > 0 ? 'right' : 'left'}, step=${moveStep}, isMovingLeft=${state.player.isMovingLeft}, isMovingRight=${state.player.isMovingRight}`);
+    }
     
     // Ensure player doesn't go off-screen horizontally
     playerX = Math.max(playerWidth / 2, Math.min(1600 - playerWidth / 2, playerX));
@@ -233,8 +244,7 @@ export const useGameLoop = ({ fps = 60 }: GameLoopProps = {}) => {
       dispatch({ type: 'SET_ON_PLATFORM', payload: true });
     }
 
-    // CRUCIAL FIX: Always update the player position with the current values
-    // Updated to match the expected payload type without velocityX
+    // Update the player position with the current values
     dispatch({
       type: 'PLAYER_MOVE_WITH_VELOCITY',
       payload: {
